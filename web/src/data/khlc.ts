@@ -11,12 +11,12 @@ export const khlcContact = {
   address: "2 Raji Rasaki Street, Amuwo Odofin, Lagos",
   cityRegion: "Amuwo Odofin, Lagos, Nigeria",
   phones: [
-    { display: "0811 891 9576", raw: "08118919576", href: "tel:+2348118919576" },
-    { display: "0913 938 6219", raw: "09139386219", href: "tel:+2349139386219" },
+    { display: "0913 938 6220", raw: "09139386220", href: "tel:+2349139386220" },
+    { display: "0913 938 6175", raw: "09139386175", href: "tel:+2349139386175" },
   ],
-  whatsappNumber: "2348118919576",
+  whatsappNumber: "2349139386220",
   whatsappUrl: (message?: string) =>
-    `https://wa.me/2348118919576?text=${encodeURIComponent(
+    `https://wa.me/2349139386220?text=${encodeURIComponent(
       message ||
         "Hello Kingshouse Learning Centre, I would like to learn more about your technology education and school partnership programs."
     )}`,

@@ -33,7 +33,7 @@ func TestCreateAndListEnquiries(t *testing.T) {
 	payload := []byte(`{
 		"pathway": "schools",
 		"fullName": "Mrs. Adeola Ogunleye",
-		"phone": "08118919576",
+		"phone": "09139386220",
 		"email": "principal@school.edu.ng",
 		"orgDetail": "Gracefield Academy, Amuwo Odofin",
 		"focus": "Full School Technology Program",
