@@ -25,12 +25,13 @@ export const khlcContact = {
 };
 
 export const navLinks = [
-  { label: "About Us", href: "#about" },
-  { label: "For Schools", href: "#for-schools" },
-  { label: "Our Programs", href: "#programs" },
-  { label: "Projects & Impact", href: "#projects" },
-  { label: "Resources", href: "#resources" },
-  { label: "Contact Us", href: "#contact" },
+  { label: "About Us", href: "/#about" },
+  { label: "For Schools", href: "/#for-schools" },
+  { label: "Our Programs", href: "/#programs" },
+  { label: "Evolve 8.0", href: "/evolve" },
+  { label: "Projects & Impact", href: "/#projects" },
+  { label: "Resources", href: "/#resources" },
+  { label: "Contact Us", href: "/#contact" },
 ];
 
 export const impactStats = [
@@ -50,9 +51,9 @@ export const impactStats = [
     detail: "Vetted technology educators deployed & mentored",
   },
   {
-    value: "Evolve 2.0",
+    value: "Evolve 8.0",
     label: "ICT Competition",
-    detail: "Flagship inter-school innovation & digital showcase",
+    detail: "National online test + Coding, AI & Robotics project track",
   },
 ];
 

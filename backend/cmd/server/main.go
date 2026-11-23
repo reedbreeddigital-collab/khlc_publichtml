@@ -21,12 +21,15 @@ func main() {
 
 	mux := http.NewServeMux()
 	enquiryHandler := handlers.NewEnquiryHandler()
+	evolveHandler := handlers.NewEvolveHandler()
 
 	// API v1 routes (Go 1.22+ method-aware routing)
 	mux.HandleFunc("GET /api/v1/health", handlers.Health)
 	mux.HandleFunc("POST /api/v1/enquiries", enquiryHandler.CreateEnquiry)
 	mux.HandleFunc("GET /api/v1/enquiries", enquiryHandler.ListEnquiries)
 	mux.HandleFunc("POST /api/v1/newsletter", enquiryHandler.SubscribeNewsletter)
+	mux.HandleFunc("POST /api/v1/evolve/registrations", evolveHandler.CreateRegistration)
+	mux.HandleFunc("GET /api/v1/evolve/registrations", evolveHandler.ListRegistrations)
 
 	handler := middleware.Logger(logger, middleware.CORS(cfg.AllowedOrigin, mux))
 

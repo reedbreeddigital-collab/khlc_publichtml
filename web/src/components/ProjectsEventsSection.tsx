@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { Trophy, ArrowRight, Sparkles } from "lucide-react";
 import { projectsAndEvents, type EnquiryPathwayId } from "@/data/khlc";
@@ -65,19 +66,13 @@ export default function ProjectsEventsSection({
           </div>
 
           <motion.div variants={riseUp} custom={0.18}>
-            <a
-              href="#contact"
-              onClick={(e) => {
-                if (onSelectPathway) {
-                  e.preventDefault();
-                  onSelectPathway("partners", "Evolve ICT Event Partnership");
-                }
-              }}
+            <Link
+              href="/evolve"
               className="group inline-flex items-center gap-2 rounded-lg bg-[#3b00b3] px-5 py-3 text-xs font-bold text-white shadow-[0_8px_20px_rgba(59,0,179,0.22)] transition-all duration-200 hover:bg-[#9dff13] hover:text-[#0d002b]"
             >
-              <span>Register / Sponsor Next Edition</span>
+              <span>Explore &amp; Register for Evolve 8.0</span>
               <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-1" />
-            </a>
+            </Link>
           </motion.div>
         </motion.div>
 
@@ -101,7 +96,7 @@ export default function ProjectsEventsSection({
               <div className="absolute inset-0 bg-gradient-to-t from-[#100038]/80 via-transparent to-transparent lg:bg-gradient-to-r lg:from-transparent lg:to-[#100038]/40" />
               <span className="absolute top-4 left-4 inline-flex items-center gap-1.5 rounded-full bg-[#9dff13] px-3.5 py-1.5 text-[11px] font-extrabold text-[#0d002b] shadow-md">
                 <Trophy className="h-3.5 w-3.5" />
-                EVOLVE 2.0 ICT COMPETITION
+                EVOLVE 8.0 · NOW OPEN
               </span>
             </div>
 
@@ -109,54 +104,43 @@ export default function ProjectsEventsSection({
             <div className="flex flex-col justify-center p-6 sm:p-8 lg:col-span-5 lg:p-10">
               <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#38e0ff]">
                 <Sparkles className="h-3.5 w-3.5 text-[#9dff13]" />
-                <span>Flagship Inter-School Innovation Event</span>
+                <span>Flagship National School Tech Programme</span>
               </div>
 
               <h3 className="mt-3 text-2xl font-extrabold leading-snug text-white sm:text-[26px]">
-                Celebrating Practical Tech Excellence Across Partner Schools
+                Evolve 8.0: Compete. Build. Solve.
               </h3>
 
               <p className="mt-3 text-xs sm:text-sm leading-relaxed text-white/80">
-                Backed by leading corporate and education partners, the{" "}
-                <strong className="text-white">Evolve ICT Competition</strong>{" "}
-                gives students a high-energy public platform to test their
-                computing, coding, and analytical skills—rewarding standout
-                schools and learners with cash prizes, scholarships, and
-                industry recognition.
+                Register your school for the{" "}
+                <strong className="text-white">
+                  Free National Online General Test
+                </strong>{" "}
+                (Primary 4 to SS3) and enter a 5-pupil team in our{" "}
+                <strong className="text-white">
+                  Coding, AI, or Robotics Project Track
+                </strong>{" "}
+                — leading to live grand finals at Skill Up Academy, Lagos with{" "}
+                <strong className="text-[#9dff13]">
+                  ₦500,000, ₦200,000 &amp; ₦100,000
+                </strong>{" "}
+                in prizes.
               </p>
 
               <div className="mt-6 flex flex-wrap gap-3">
-                <a
-                  href="#contact"
-                  onClick={(e) => {
-                    if (onSelectPathway) {
-                      e.preventDefault();
-                      onSelectPathway(
-                        "schools",
-                        "Register Our School for Evolve ICT Competition"
-                      );
-                    }
-                  }}
+                <Link
+                  href="/evolve#register"
                   className="inline-flex items-center gap-2 rounded-lg bg-[#9dff13] px-4 py-2.5 text-xs font-extrabold text-[#0d002b] transition-colors hover:bg-[#38e0ff]"
                 >
-                  <span>Enter Your School</span>
+                  <span>Register Your School</span>
                   <ArrowRight className="h-3.5 w-3.5" />
-                </a>
-                <a
-                  href="#contact"
-                  onClick={(e) => {
-                    if (onSelectPathway) {
-                      e.preventDefault();
-                      onSelectPathway(
-                        "partners",
-                        "Sponsor Evolve ICT Competition"
-                      );
-                    }
-                  }}
+                </Link>
+                <Link
+                  href="/evolve"
                   className="inline-flex items-center gap-2 rounded-lg border border-white/25 bg-white/5 px-4 py-2.5 text-xs font-bold text-white transition-colors hover:border-[#38e0ff] hover:text-[#38e0ff]"
                 >
-                  <span>Become an Event Sponsor</span>
-                </a>
+                  <span>View Guidelines &amp; Themes</span>
+                </Link>
               </div>
             </div>
           </div>

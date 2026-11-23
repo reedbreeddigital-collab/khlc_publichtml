@@ -22,12 +22,12 @@ interface FooterSectionProps {
 }
 
 const programLinks = [
-  { label: "ICT Education", href: "#programs" },
-  { label: "Coding & Software Dev", href: "#programs" },
-  { label: "Robotics & STEM", href: "#programs" },
-  { label: "Artificial Intelligence", href: "#programs" },
-  { label: "Teacher Training", href: "#programs" },
-  { label: "Evolve ICT Competition", href: "#projects" },
+  { label: "ICT Education", href: "/#programs" },
+  { label: "Coding & Software Dev", href: "/#programs" },
+  { label: "Robotics & STEM", href: "/#programs" },
+  { label: "Artificial Intelligence", href: "/#programs" },
+  { label: "Teacher Training", href: "/#programs" },
+  { label: "Evolve 8.0 Competition", href: "/evolve" },
 ];
 
 const riseUp = {
@@ -159,7 +159,7 @@ export default function FooterSection({ onSelectPathway }: FooterSectionProps) {
             custom={0}
             className="lg:col-span-4 lg:pr-6"
           >
-            <a href="#" className="inline-flex items-center group">
+            <a href="/" className="inline-flex items-center group">
               <KhlcLogo
                 className="h-14 w-auto transition-transform duration-300 group-hover:scale-105"
                 variant="dark"
@@ -174,7 +174,7 @@ export default function FooterSection({ onSelectPathway }: FooterSectionProps) {
 
             <div className="mt-6 flex flex-wrap gap-3">
               <a
-                href="#contact"
+                href="/#contact"
                 onClick={(e) => {
                   if (onSelectPathway) {
                     e.preventDefault();
@@ -188,7 +188,7 @@ export default function FooterSection({ onSelectPathway }: FooterSectionProps) {
               </a>
 
               <a
-                href="#contact"
+                href="/#contact"
                 onClick={(e) => {
                   if (onSelectPathway) {
                     e.preventDefault();
@@ -316,15 +316,15 @@ export default function FooterSection({ onSelectPathway }: FooterSectionProps) {
           </p>
 
           <div className="flex flex-wrap items-center gap-4 text-white/90">
-            <a href="#for-schools" className="transition-colors hover:text-[#9dff13]">
+            <a href="/#for-schools" className="transition-colors hover:text-[#9dff13]">
               School Partnerships
             </a>
             <span className="text-white/40">·</span>
-            <a href="#programs" className="transition-colors hover:text-[#9dff13]">
-              Programs
+            <a href="/evolve" className="transition-colors hover:text-[#9dff13]">
+              Evolve 8.0
             </a>
             <span className="text-white/40">·</span>
-            <a href="#contact" className="transition-colors hover:text-[#9dff13]">
+            <a href="/#contact" className="transition-colors hover:text-[#9dff13]">
               Contact
             </a>
           </div>

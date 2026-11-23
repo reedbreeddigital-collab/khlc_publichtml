@@ -79,16 +79,20 @@ export default function HeroSection({ onSelectPathway }: HeroSectionProps) {
             />
           </a>
 
-          {/* Desktop Navigation Links (6 Recommended Sections) */}
+          {/* Desktop Navigation Links */}
           <nav
             aria-label="Primary Navigation"
-            className="hidden lg:flex items-center gap-6 xl:gap-7"
+            className="hidden lg:flex items-center gap-5 xl:gap-6"
           >
             {navLinks.map((item) => (
               <a
                 key={item.label}
                 href={item.href}
-                className="text-sm font-medium text-white/90 transition-colors hover:text-[#9dff13]"
+                className={
+                  item.href === "/evolve"
+                    ? "rounded-full bg-[#9dff13]/15 px-3 py-1 text-xs font-extrabold text-[#9dff13] border border-[#9dff13]/35 transition-colors hover:bg-[#9dff13] hover:text-[#0d002b]"
+                    : "text-sm font-medium text-white/90 transition-colors hover:text-[#9dff13]"
+                }
               >
                 {item.label}
               </a>
