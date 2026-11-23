@@ -22,6 +22,7 @@ func main() {
 	mux := http.NewServeMux()
 	enquiryHandler := handlers.NewEnquiryHandler()
 	evolveHandler := handlers.NewEvolveHandler()
+	crmHandler := handlers.NewCrmHandler()
 
 	// API v1 routes (Go 1.22+ method-aware routing)
 	mux.HandleFunc("GET /api/v1/health", handlers.Health)
@@ -30,6 +31,10 @@ func main() {
 	mux.HandleFunc("POST /api/v1/newsletter", enquiryHandler.SubscribeNewsletter)
 	mux.HandleFunc("POST /api/v1/evolve/registrations", evolveHandler.CreateRegistration)
 	mux.HandleFunc("GET /api/v1/evolve/registrations", evolveHandler.ListRegistrations)
+	mux.HandleFunc("GET /api/v1/crm/leads", crmHandler.ListLeads)
+	mux.HandleFunc("POST /api/v1/crm/leads", crmHandler.CreateLead)
+	mux.HandleFunc("PATCH /api/v1/crm/leads/{id}", crmHandler.UpdateLead)
+	mux.HandleFunc("DELETE /api/v1/crm/leads/{id}", crmHandler.DeleteLead)
 
 	handler := middleware.Logger(logger, middleware.CORS(cfg.AllowedOrigin, mux))
 

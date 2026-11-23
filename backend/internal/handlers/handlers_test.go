@@ -112,3 +112,39 @@ func TestEvolveRegistration(t *testing.T) {
 		t.Fatalf("expected status 200, got %d", listRec.Code)
 	}
 }
+
+func TestCrmLeadCRUD(t *testing.T) {
+	h := NewCrmHandler()
+
+	createBody := []byte(`{
+		"id": "lead_test_1",
+		"organization": "Gracefield Royal Academy",
+		"contactName": "Mrs. Adeola Ogunleye",
+		"segment": "School Partnership",
+		"stage": "new",
+		"estimatedValueNgn": 1850000
+	}`)
+	createReq := httptest.NewRequest(http.MethodPost, "/api/v1/crm/leads", bytes.NewReader(createBody))
+	createRec := httptest.NewRecorder()
+	h.CreateLead(createRec, createReq)
+	if createRec.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", createRec.Code, createRec.Body.String())
+	}
+
+	patchBody := []byte(`{"stage":"proposal","newActivity":{"type":"Proposal","summary":"Sent PDF quote","author":"Admin"}}`)
+	patchReq := httptest.NewRequest(http.MethodPatch, "/api/v1/crm/leads/lead_test_1", bytes.NewReader(patchBody))
+	patchReq.SetPathValue("id", "lead_test_1")
+	patchRec := httptest.NewRecorder()
+	h.UpdateLead(patchRec, patchReq)
+	if patchRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 on patch, got %d: %s", patchRec.Code, patchRec.Body.String())
+	}
+
+	delReq := httptest.NewRequest(http.MethodDelete, "/api/v1/crm/leads/lead_test_1", nil)
+	delReq.SetPathValue("id", "lead_test_1")
+	delRec := httptest.NewRecorder()
+	h.DeleteLead(delRec, delReq)
+	if delRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 on delete, got %d", delRec.Code)
+	}
+}
