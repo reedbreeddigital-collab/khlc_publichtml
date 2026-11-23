@@ -149,7 +149,7 @@ export default function EvolveRegistrationForm({
     track === "both"
       ? "Both Tracks (Phase 1 Online Test + Project Track)"
       : track === "test"
-      ? "Phase 1: National Online General Test (Free)"
+      ? "Phase 1: National Online General Test"
       : "Phase 2: Project Track (Coding, AI or Robotics)";
 
   const buildSummaryText = (refCode: string) => {
@@ -340,13 +340,13 @@ export default function EvolveRegistrationForm({
             {
               id: "both" as RegistrationTrack,
               title: "Both Tracks (Recommended)",
-              desc: "Free Online Test + 5-Pupil Project Track",
+              desc: "National Online Test + 5-Pupil Project Track",
               icon: Layers,
             },
             {
               id: "test" as RegistrationTrack,
               title: "Phase 1: Online Test Only",
-              desc: "Free · Up to 3 pupils per level (P4–SS3)",
+              desc: "Up to 3 pupils per level (Primary 4 – SS3)",
               icon: Users,
             },
             {
@@ -573,7 +573,7 @@ export default function EvolveRegistrationForm({
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <span className="text-[11px] font-extrabold uppercase tracking-[0.15em] text-[#3b00b3]">
-                Phase 1 · National Online General Test (Free)
+                Phase 1 · National Online General Test
               </span>
               <p className="mt-0.5 text-xs text-gray-500">
                 Each school may register up to 3 pupils per level (Junior P4–P6,

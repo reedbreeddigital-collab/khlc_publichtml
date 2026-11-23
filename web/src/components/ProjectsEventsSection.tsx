@@ -114,13 +114,13 @@ export default function ProjectsEventsSection({
               <p className="mt-3 text-xs sm:text-sm leading-relaxed text-white/80">
                 Register your school for the{" "}
                 <strong className="text-white">
-                  Free National Online General Test
+                  National Online General Test
                 </strong>{" "}
                 (Primary 4 to SS3) and enter a 5-pupil team in our{" "}
                 <strong className="text-white">
                   Coding, AI, or Robotics Project Track
-                </strong>{" "}
-                — leading to live grand finals at Skill Up Academy, Lagos with{" "}
+                </strong>
+                , leading to live grand finals in Lagos with{" "}
                 <strong className="text-[#9dff13]">
                   ₦500,000, ₦200,000 &amp; ₦100,000
                 </strong>{" "}

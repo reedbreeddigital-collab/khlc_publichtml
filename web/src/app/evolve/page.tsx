@@ -118,9 +118,8 @@ export default function EvolvePage() {
           <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5">
             <span>
               <strong className="font-extrabold">Evolve 8.0</strong>{" "}
-              Registration: 22 Oct – 14 Nov 2026 · Phase 1 Online Test is{" "}
-              <strong className="font-extrabold">100% FREE</strong> for all
-              schools.
+              Registration: 22 Oct – 14 Nov 2026 · National Online General Test
+              (Primary 4 to SS3) &amp; Coding, AI or Robotics Project Track.
             </span>
             <a
               href="#register"
@@ -265,17 +264,19 @@ export default function EvolvePage() {
                 custom={0.2}
                 className="mt-5 max-w-xl text-sm sm:text-[15.5px] leading-relaxed text-white/80"
               >
-                Turning Kingshouse&apos;s flagship annual ICT competition into a
-                year-round school innovation programme. Every school can compete
-                in the{" "}
+                Register your school for the{" "}
                 <strong className="text-white">
-                  Free National Online General Test
+                  National Online General Test
                 </strong>{" "}
-                and field a 5-pupil team in the{" "}
+                (Primary 4 to SS3) and enter a 5-pupil team in our{" "}
                 <strong className="text-white">
                   Coding, AI, or Robotics Project Track
                 </strong>
-                .
+                , leading to live grand finals in Lagos with{" "}
+                <strong className="text-[#9dff13]">
+                  ₦500,000, ₦200,000 &amp; ₦100,000
+                </strong>{" "}
+                in prizes.
               </motion.p>
 
               <motion.div
@@ -429,7 +430,7 @@ export default function EvolvePage() {
                     PHASE 1 · NATIONAL ONLINE TEST
                   </span>
                   <span className="rounded-full bg-[#9dff13] px-3 py-1 text-[11px] font-extrabold text-[#0d002b]">
-                    100% FREE
+                    Primary 4 – SS3
                   </span>
                 </div>
 
@@ -437,9 +438,9 @@ export default function EvolvePage() {
                   National Online General ICT Test
                 </h3>
                 <p className="mt-2 text-xs sm:text-sm leading-relaxed text-gray-600">
-                  Open and free for all schools across a single national window
-                  (<strong>{phase1Details.testWindow}</strong>). Scores are out
-                  of <strong>{phase1Details.maxScore}</strong> with a{" "}
+                  Open to all participating schools across a single national
+                  window (<strong>{phase1Details.testWindow}</strong>). Scores
+                  are out of <strong>{phase1Details.maxScore}</strong> with a{" "}
                   <strong>{phase1Details.passMark}</strong> pass mark across all
                   levels. Faster completion time breaks ties.
                 </p>
@@ -1047,7 +1048,7 @@ export default function EvolvePage() {
               className="mt-3 text-xs sm:text-sm text-white/75"
             >
               From national registration in October 2026 to the Live Grand
-              Finals at Skill Up Academy, Lagos in 2027.
+              Finals in Lagos in 2027.
             </motion.p>
           </motion.div>
 
@@ -1120,8 +1121,9 @@ export default function EvolvePage() {
               className="mt-3 text-sm text-gray-600"
             >
               Instructors, school coordinators, principals, and proprietors can
-              register pupils for the free Phase 1 Online Test and/or enter a
-              team of 5 for the Coding, AI, or Robotics Project Track below.
+              register pupils for the Phase 1 National Online General Test
+              and/or enter a team of 5 for the Coding, AI, or Robotics Project
+              Track below.
             </motion.p>
           </motion.div>
 

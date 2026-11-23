@@ -336,7 +336,7 @@ export const projectsAndEvents: ProjectEventItem[] = [
     badge: "Flagship Competition",
     title: "Evolve 8.0 ICT Competition",
     summary:
-      "Our annual inter-school technology programme combining a Free National Online Test with a Coding, AI & Robotics Project Track—culminating in live finals in Lagos.",
+      "Register your school for the National Online General Test (Primary 4 to SS3) and enter a 5-pupil team in our Coding, AI, or Robotics Project Track, leading to live grand finals in Lagos with ₦500,000, ₦200,000 & ₦100,000 in prizes.",
     metric: "₦500K / ₦200K / ₦100K Prizes",
     image: "/images/evolve-award.webp",
   },
@@ -445,13 +445,13 @@ export const resourceArticles: ResourceArticle[] = [
       "How partner schools, educators, and corporate sponsors come together to celebrate practical digital competence, coding excellence, and student innovation.",
     image: "/images/evolve-award.webp",
     highlights: [
-      "Free National Online Test plus Coding, AI & Robotics Project Track",
-      "₦500,000, ₦200,000 & ₦100,000 prizes at live finals in Lagos",
+      "National Online General Test (Primary 4 to SS3) plus Coding, AI & Robotics Project Track",
+      "₦500,000, ₦200,000 & ₦100,000 prizes at live grand finals in Lagos",
       "Strong collaboration between school leadership, parents, and industry partners",
     ],
     body: [
       "The Evolve ICT Competition was created by Kingshouse Learning Centre to move technology education beyond rote classroom theory into real-world demonstration.",
-      "Now expanded into Evolve 8.0, schools participate in a Free National Online General Test alongside a 5-pupil Coding, AI, or Robotics Project Track tackling real UN SDG challenges.",
+      "Now expanded into Evolve 8.0, schools participate in the National Online General Test alongside a 5-pupil Coding, AI, or Robotics Project Track tackling real UN SDG challenges.",
       "Schools interested in preparing their pupils for Evolve 8.0 can register directly on our /evolve page or partner with Kingshouse for year-round curriculum delivery.",
     ],
   },

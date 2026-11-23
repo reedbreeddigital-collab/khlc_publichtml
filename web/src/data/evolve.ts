@@ -13,7 +13,7 @@ export const evolveMeta = {
   edition: "Evolve 8.0",
   motto: "Compete. Build. Solve.",
   host: "Kingshouse Learning Centre",
-  venue: "Skill Up Academy, Lagos",
+  venue: "Lagos",
   prizes: [
     { place: "1st Place", amount: "₦500,000", note: "Grand Innovation Prize" },
     { place: "2nd Place", amount: "₦200,000", note: "Runner-Up Prize" },
@@ -22,7 +22,7 @@ export const evolveMeta = {
 };
 
 export const phase1Details = {
-  fee: "Free for all schools",
+  fee: "Open to all schools",
   maxScore: "1,000 points",
   passMark: "700 (70%)",
   quotaPerLevel: "Up to 3 pupils per level per school",
@@ -176,5 +176,5 @@ export const evolveTimeline = [
   { date: "Jan – Feb 2027", title: "Team Build Period", detail: "Teams of 5 design, build, test, and document their working projects." },
   { date: "Late Feb 2027", title: "3-Minute Project Video Deadline", detail: "Final demo videos (max 3 mins) submitted showcasing finished work." },
   { date: "March 2027", title: "Video Judging & Finalists", detail: "Judges score entries out of 100 marks and select top teams for live finals." },
-  { date: "2027 Finals", title: "Live Grand Finals in Lagos", detail: "Live finals for Test & Project finalists at Skill Up Academy, Lagos (250+ laptops)." },
+  { date: "2027 Finals", title: "Live Grand Finals in Lagos", detail: "Live finals for Test & Project finalists in Lagos (250+ laptops)." },
 ];
