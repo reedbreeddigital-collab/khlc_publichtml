@@ -13,6 +13,7 @@ import {
   Users,
   Handshake,
   GraduationCap,
+  Download,
 } from "lucide-react";
 import { khlcContact, type EnquiryPathwayId } from "@/data/khlc";
 
@@ -212,9 +213,8 @@ export default function VideoContactSection({
             custom={0.1}
             className="text-3xl font-extrabold leading-tight tracking-tight text-[#0d002b] sm:text-4xl"
           >
-            Let&apos;s Build Your{" "}
-            <span className="text-[#3b00b3]">Technology Education</span>{" "}
-            Program Together
+            Let&apos;s Build the{" "}
+            <span className="text-[#3b00b3]">Future</span> Together
           </motion.h2>
 
           <motion.p
@@ -222,9 +222,11 @@ export default function VideoContactSection({
             custom={0.18}
             className="mt-3 text-sm sm:text-[15px] text-gray-600"
           >
-            Choose your enquiry pathway below to request a school proposal,
-            enroll a learner, sponsor Evolve ICT, or connect immediately via
-            WhatsApp.
+            We would be delighted to customize a technology education program
+            that aligns with your school&apos;s vision and goals.{" "}
+            <strong className="text-[#0d002b]">
+              {khlcContact.closingMotto}
+            </strong>
           </motion.p>
         </motion.div>
 
@@ -316,23 +318,31 @@ export default function VideoContactSection({
               </div>
             </div>
 
-            {/* WhatsApp Instant CTA */}
-            <div className="relative z-10 mt-8 rounded-2xl border border-[#9dff13]/30 bg-white/[0.06] p-4">
+            {/* WhatsApp & Brochure Instant CTAs */}
+            <div className="relative z-10 mt-8 rounded-2xl border border-[#9dff13]/30 bg-white/[0.06] p-4 space-y-2.5">
               <p className="text-xs font-bold text-white">
-                Prefer an instant conversation?
+                Prefer an instant conversation or brochure?
               </p>
-              <p className="mt-1 text-[11px] text-white/75">
-                Message our partnerships desk directly on WhatsApp to request a
-                school brochure or schedule a campus meeting.
+              <p className="text-[11px] text-white/75">
+                Message our partnerships desk on WhatsApp or download our
+                official School Partnership Brochure PDF.
               </p>
               <a
                 href={khlcContact.whatsappUrl()}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-3.5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#9dff13] px-4 py-3 text-xs font-extrabold text-[#0d002b] transition-all hover:bg-[#38e0ff]"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#9dff13] px-4 py-3 text-xs font-extrabold text-[#0d002b] transition-all hover:bg-[#38e0ff]"
               >
                 <MessageCircle className="h-4 w-4" />
                 <span>Chat With Us on WhatsApp</span>
+              </a>
+              <a
+                href={khlcContact.brochureUrl}
+                download="Kingshouse-School-Partnership-Brochure.pdf"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/5 px-4 py-2.5 text-xs font-bold text-white transition-all hover:border-[#38e0ff] hover:text-[#38e0ff]"
+              >
+                <Download className="h-4 w-4" />
+                <span>Download School Brochure (PDF)</span>
               </a>
             </div>
           </div>

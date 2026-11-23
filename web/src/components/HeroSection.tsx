@@ -16,6 +16,8 @@ import {
   GraduationCap,
   Award,
   Sparkles,
+  Download,
+  Globe,
 } from "lucide-react";
 
 interface HeroSectionProps {
@@ -229,7 +231,7 @@ export default function HeroSection({ onSelectPathway }: HeroSectionProps) {
             >
               <Sparkles className="h-3.5 w-3.5 text-[#9dff13]" />
               <span className="text-[11px] sm:text-xs font-bold uppercase tracking-[0.14em] text-[#38e0ff]">
-                TRUSTED EDTECH PARTNER FOR SCHOOLS &amp; LEARNERS
+                EMPOWERING SCHOOLS · INSPIRING FUTURE INNOVATORS
               </span>
             </motion.div>
 
@@ -250,20 +252,22 @@ export default function HeroSection({ onSelectPathway }: HeroSectionProps) {
               custom={0.2}
               className="mt-5 max-w-xl text-sm sm:text-[15.5px] leading-relaxed text-white/80"
             >
-              Kingshouse Learning Centre equips primary &amp; secondary schools,
-              young learners, and educators with structured, practical training
-              in{" "}
+              Technology education partnerships for{" "}
               <strong className="font-bold text-white">
-                ICT, Coding, Robotics, and Artificial Intelligence
+                Nursery, Primary, and Secondary Schools
               </strong>
-              —backed by vetted instructors and measurable impact.
+              . Kingshouse Learning Centre delivers structured, practical{" "}
+              <strong className="font-bold text-white">
+                Digital Literacy, Coding, Robotics (STEM), and AI
+              </strong>
+              —backed by our Cisco Networking Academy affiliation.
             </motion.p>
 
-            {/* Dual CTA Buttons */}
+            {/* Dual CTA Buttons + Brochure Download */}
             <motion.div
               variants={riseUp}
               custom={0.3}
-              className="mt-8 flex flex-wrap items-center gap-4"
+              className="mt-8 flex flex-wrap items-center gap-3.5"
             >
               <a
                 href="#contact"
@@ -275,30 +279,32 @@ export default function HeroSection({ onSelectPathway }: HeroSectionProps) {
               </a>
 
               <a
-                href="#programs"
-                className="inline-flex items-center gap-2 rounded-lg border border-white/25 bg-white/5 px-6 py-3.5 text-sm font-bold text-white transition-all duration-200 hover:border-[#38e0ff] hover:bg-[#38e0ff]/10"
+                href={khlcContact.brochureUrl}
+                download="Kingshouse-School-Partnership-Brochure.pdf"
+                className="inline-flex items-center gap-2 rounded-lg border border-white/25 bg-white/5 px-5 py-3.5 text-sm font-bold text-white transition-all duration-200 hover:border-[#9dff13] hover:bg-[#9dff13]/10 hover:text-[#9dff13]"
               >
-                <span>Explore Our Programs</span>
+                <Download className="h-4 w-4 text-[#9dff13]" />
+                <span>School Brochure (PDF)</span>
               </a>
             </motion.div>
 
-            {/* Quick Audience Pills */}
+            {/* Quick Proof & Cisco Credibility Pills */}
             <motion.div
               variants={riseUp}
               custom={0.4}
-              className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-white/10 pt-5 text-xs text-white/75"
+              className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-white/10 pt-5 text-xs text-white/80"
             >
+              <span className="inline-flex items-center gap-1.5 font-bold text-[#38e0ff]">
+                <Globe className="h-3.5 w-3.5 text-[#9dff13]" />
+                Cisco Networking Academy Affiliated
+              </span>
               <span className="inline-flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-[#9dff13]" />
-                School Partnerships
+                Nursery, Primary &amp; Secondary
               </span>
               <span className="inline-flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-[#38e0ff]" />
-                Coding, Robotics &amp; AI
-              </span>
-              <span className="inline-flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-[#9dff13]" />
-                Teacher Training &amp; Evolve ICT
+                Learn → Practice → Build → Present
               </span>
             </motion.div>
           </motion.div>

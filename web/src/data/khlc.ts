@@ -8,8 +8,12 @@ export const khlcContact = {
   brandName: "Kingshouse Learning Centre",
   shortName: "KHLC",
   tagline: "Building Tomorrow's Innovators Through Technology Education",
-  address: "2 Raji Rasaki Street, Amuwo Odofin, Lagos",
-  cityRegion: "Amuwo Odofin, Lagos, Nigeria",
+  brochureTagline: "Empowering Schools, Inspiring Future Innovators.",
+  closingMotto: "Together, let's prepare every child to thrive in a digital world.",
+  address: "2, Raji Rasaki Road, Amuwo-Odofin, Lagos",
+  cityRegion: "Amuwo-Odofin, Lagos, Nigeria",
+  website: "www.kingshouselearning.com",
+  brochureUrl: "/Kingshouse-School-Partnership-Brochure.pdf",
   phones: [
     { display: "0913 938 6220", raw: "09139386220", href: "tel:+2349139386220" },
     { display: "0913 938 6175", raw: "09139386175", href: "tel:+2349139386175" },
@@ -20,8 +24,8 @@ export const khlcContact = {
       message ||
         "Hello Kingshouse Learning Centre, I would like to learn more about your technology education and school partnership programs."
     )}`,
-  email: "info@kinghouselearning.com",
-  emailHref: "mailto:info@kinghouselearning.com",
+  email: "info@kingshouselearning.com",
+  emailHref: "mailto:info@kingshouselearning.com",
 };
 
 export const navLinks = [
@@ -38,17 +42,17 @@ export const impactStats = [
   {
     value: "300+",
     label: "Partner Schools",
-    detail: "Primary & secondary schools powered across Lagos & beyond",
+    detail: "Nursery, primary & secondary schools powered across Lagos & beyond",
   },
   {
     value: "50,000+",
     label: "Learners Reached",
-    detail: "Students trained in ICT, Coding, Robotics & AI",
+    detail: "Students trained in Digital Literacy, Coding, Robotics & AI",
   },
   {
     value: "65+",
     label: "Certified Instructors",
-    detail: "Vetted technology educators deployed & mentored",
+    detail: "Qualified technology educators deployed & supervised",
   },
   {
     value: "Evolve 8.0",
@@ -56,6 +60,85 @@ export const impactStats = [
     detail: "National online test + Coding, AI & Robotics project track",
   },
 ];
+
+export const approachSteps = [
+  {
+    step: "01",
+    title: "Learn",
+    detail: "Age-appropriate digital, coding, robotics & AI concepts.",
+  },
+  {
+    step: "02",
+    title: "Practice",
+    detail: "Guided hands-on lab sessions, exercises & real-world challenges.",
+  },
+  {
+    step: "03",
+    title: "Build",
+    detail: "Students design working websites, games, apps & robotics prototypes.",
+  },
+  {
+    step: "04",
+    title: "Present",
+    detail: "Showcase projects at school demo days, exhibitions & Evolve ICT.",
+  },
+];
+
+export const partnershipModel = {
+  khlcProvides: [
+    "Professional ICT, Coding, Robotics and AI Instructors",
+    "Curriculum and Lesson Plans",
+    "Practical Learning Resources",
+    "Student Assessments",
+    "Project-Based Learning Activities",
+    "End-of-Term Reports",
+    "Instructor Supervision and Quality Assurance",
+    "Teacher Support and Capacity Building",
+  ],
+  schoolProvides: [
+    "A conducive learning environment",
+    "Computer laboratory or ICT-enabled classroom",
+    "Student enrollment for the program",
+    "Timetable integration and administrative support",
+  ],
+};
+
+export const expectedOutcomes = {
+  studentsWill: [
+    "Develop computational thinking and creativity.",
+    "Build confidence in technology and innovation.",
+    "Design digital projects, games, websites and simple applications.",
+    "Acquire future-ready skills relevant to higher education and emerging careers.",
+    "Strengthen collaboration, communication and problem-solving abilities.",
+  ],
+  schoolsWill: [
+    "Enhance their academic profile.",
+    "Increase parent satisfaction and learner engagement.",
+    "Differentiate themselves with a premium technology program.",
+    "Position themselves as future-ready institutions.",
+  ],
+};
+
+export const ciscoAffiliation = {
+  eyebrow: "GLOBAL ECOSYSTEM CREDIBILITY",
+  title: "Our Cisco Networking Academy Affiliation",
+  overview:
+    "Kingshouse Learning Centre is a Cisco Networking Academy organization, giving KHLC and our partner schools access to Cisco Networking Academy's globally recognized skills-to-jobs technology education ecosystem.",
+  domains: [
+    "Networking",
+    "Cybersecurity",
+    "Artificial Intelligence",
+    "Programming",
+    "Data Science",
+    "Digital Literacy",
+  ],
+  schoolBenefits: [
+    "Industry-aligned technology curriculum",
+    "Practical and interactive learning experiences",
+    "Technology-focused learning resources",
+    "Enrolled students receive Cisco-endorsed certifications, opening doors to global opportunities",
+  ],
+};
 
 export interface AudienceSegment {
   id: EnquiryPathwayId;
@@ -73,25 +156,25 @@ export const audienceSegments: AudienceSegment[] = [
     badge: "B2B Partnership",
     title: "For Schools",
     description:
-      "Turnkey ICT, Coding, Robotics, and AI integration with vetted instructors, structured termly curricula, assessments, and inter-school competition readiness.",
+      "Turnkey technology education partnerships for Nursery, Primary, and Secondary schools—without the burden of curriculum design, hiring, or managing programs alone.",
     highlights: [
-      "Deployed certified ICT & STEM instructors",
-      "Age-graded practical termly syllabus",
-      "Termly CBT assessments & progress reports",
+      "Integrated into timetables, clubs or holiday programs",
+      "Deployed ICT, Coding, Robotics & AI instructors",
+      "Cisco Networking Academy ecosystem & termly QA",
     ],
     ctaLabel: "Request School Proposal",
     accent: "#3b00b3",
   },
   {
     id: "parents",
-    badge: "K–12 Learners",
+    badge: "Nursery – SS3",
     title: "Parents & Learners",
     description:
-      "Hands-on after-school clubs, weekend academies, and holiday tech bootcamps where children move from passive screen consumers to confident builders.",
+      "Hands-on after-school clubs, weekend academies, and holiday tech bootcamps where children move from screen consumers to creators, innovators, and problem-solvers.",
     highlights: [
-      "Coding, robotics kits & AI literacy projects",
-      "Portfolio showcase & demo days for parents",
-      "Safe, structured mentorship for ages 6–17",
+      "Scratch, Python, HTML/CSS, Arduino & Raspberry Pi",
+      "Portfolio projects, exhibitions & Evolve 8.0 prep",
+      "Safe, structured mentorship for young learners",
     ],
     ctaLabel: "Enquire for Your Child",
     accent: "#0099cc",
@@ -101,11 +184,11 @@ export const audienceSegments: AudienceSegment[] = [
     badge: "Career & Digital Skills",
     title: "Individuals",
     description:
-      "Practical, instructor-led training tracks designed for young adults, educators, and professionals building in-demand digital productivity and software skills.",
+      "Practical, instructor-led training tracks aligned with global industry standards—equipping young adults and professionals with career-ready digital skills.",
     highlights: [
-      "Web development, Python & data literacy",
-      "Applied AI & digital workplace tools",
-      "Project-based certification & mentorship",
+      "Networking, Cybersecurity & Digital Literacy",
+      "Web development, Python & Applied AI",
+      "Cisco-endorsed certification pathways",
     ],
     ctaLabel: "Explore Skill Tracks",
     accent: "#10b981",
@@ -115,9 +198,9 @@ export const audienceSegments: AudienceSegment[] = [
     badge: "CSR & Institutions",
     title: "Institutional Partners",
     description:
-      "Collaborate with Kingshouse to sponsor competitions like Evolve ICT, equip school tech labs, and scale youth digital inclusion initiatives.",
+      "Collaborate with Kingshouse to sponsor competitions like Evolve 8.0, equip school ICT & robotics labs, and scale youth digital inclusion initiatives.",
     highlights: [
-      "Evolve ICT Competition sponsorship",
+      "Evolve 8.0 ICT Competition sponsorship",
       "Community STEM & school lab initiatives",
       "Transparent impact reporting & visibility",
     ],
@@ -141,79 +224,97 @@ export interface ProgramItem {
 
 export const programs: ProgramItem[] = [
   {
-    id: "ict-education",
-    tag: "Core Curriculum",
-    audience: "Primary & Secondary Schools",
-    delivery: "On-Campus Termly",
-    title: "ICT Education & Digital Literacy",
+    id: "digital-literacy",
+    tag: "01 · Digital Literacy",
+    audience: "Nursery, Primary & Secondary",
+    delivery: "Timetable & Lab Sessions",
+    title: "Digital Literacy & ICT Education",
     description:
-      "A structured, exam-aligned ICT curriculum equipping pupils with practical computing fundamentals, productivity suites, digital citizenship, and CBT readiness.",
-    outcomes: ["Structured termly lesson plans", "Hands-on computer lab sessions"],
+      "Building strong foundational technology skills that students can use confidently in school and everyday life—covering computer fundamentals, Microsoft Office, and internet research.",
+    outcomes: [
+      "Computer fundamentals & Microsoft Office",
+      "Internet research & information literacy",
+    ],
     image: "/images/hero-laptop-focus.webp",
     filterGroup: "For Schools",
     pathway: "schools",
   },
   {
-    id: "coding",
-    tag: "Software Building",
-    audience: "Ages 7–18 & Beginners",
-    delivery: "School Clubs & Bootcamps",
-    title: "Coding & Software Development",
+    id: "coding-programming",
+    tag: "02 · Coding & Programming",
+    audience: "Primary & Secondary",
+    delivery: "Timetable, Clubs & Bootcamps",
+    title: "Coding & Programming",
     description:
-      "Step-by-step computational thinking and programming pathways—from Scratch and interactive animations to Python, HTML/CSS, JavaScript, and web apps.",
-    outcomes: ["Real student-built web & app projects", "Logic & problem-solving mastery"],
+      "Introducing students to computational thinking and programming through age-appropriate, practical learning—building games, websites, and real applications.",
+    outcomes: [
+      "Scratch block-based & HTML, CSS, Java",
+      "Python fundamentals for appropriate ages",
+    ],
     image: "/images/hero-mentorship.webp",
     filterGroup: "Coding & STEM",
     pathway: "parents",
   },
   {
-    id: "robotics",
-    tag: "Hands-On Engineering",
-    audience: "Primary, Secondary & Tech Clubs",
-    delivery: "Lab Kits & Workshops",
-    title: "Robotics & Embedded Systems",
+    id: "robotics-stem",
+    tag: "03 · Robotics (STEM)",
+    audience: "Primary, Secondary & Clubs",
+    delivery: "Hands-On Lab Kits",
+    title: "Robotics (STEM) & Electronics",
     description:
-      "Practical electronics, microcontrollers, sensors, and autonomous robot building that turn science and mathematics into exciting real-world engineering.",
-    outcomes: ["Physical prototype builds every term", "Teamwork & design thinking"],
+      "A hands-on program combining technology, engineering, creativity, and problem-solving through real sensors, circuits, and physical STEM prototypes.",
+    outcomes: [
+      "Sensors, basic electronics & STEM projects",
+      "mBlock, PictoBlox, Arduino & Raspberry Pi",
+    ],
     image: "/images/program-robotics.webp",
     filterGroup: "Coding & STEM",
     pathway: "schools",
   },
   {
     id: "artificial-intelligence",
-    tag: "Future-Ready Track",
+    tag: "04 · Future-Ready AI",
     audience: "Upper Primary, Secondary & Youth",
     delivery: "Guided Practical Labs",
-    title: "Artificial Intelligence (AI) Literacy",
+    title: "Artificial Intelligence (AI) & Data",
     description:
-      "Age-appropriate foundations in how AI works, ethical technology use, smart prompting, data patterns, and building mini AI-powered classroom projects.",
-    outcomes: ["Responsible & creative AI fluency", "Applied machine learning demos"],
+      "Age-appropriate AI literacy and Cisco-aligned data concepts—teaching responsible AI usage, smart problem-solving, and guided classroom AI project builds.",
+    outcomes: [
+      "Responsible AI fluency & data thinking",
+      "Cisco Networking Academy aligned track",
+    ],
     image: "/images/program-ai.webp",
     filterGroup: "Coding & STEM",
     pathway: "schools",
   },
   {
     id: "teacher-training",
-    tag: "Educator Upskilling",
-    audience: "School Teachers & HODs",
-    delivery: "Workshops & Termly Coaching",
-    title: "Teacher Training & Capacity Building",
+    tag: "05 · Educator Capacity",
+    audience: "Internal ICT & STEM Teams",
+    delivery: "Workshops & Termly Support",
+    title: "Teacher Support & Capacity Building",
     description:
-      "Targeted professional development empowering classroom teachers to integrate digital tools, interactive presentations, AI teaching assistants, and CBT assessments.",
-    outcomes: ["Practical digital classroom mastery", "Ongoing instructor coaching"],
+      "Strengthening the capacity of your school's internal ICT and STEM faculty with modern teaching tools, lesson planning support, and practical EdTech workshops.",
+    outcomes: [
+      "Internal ICT & STEM team upskilling",
+      "Ongoing pedagogical & assessment coaching",
+    ],
     image: "/images/program-teachers.webp",
     filterGroup: "Educator Training",
     pathway: "schools",
   },
   {
     id: "school-tech-programs",
-    tag: "Turnkey B2B Solution",
-    audience: "Proprietors & School Boards",
-    delivery: "Full-Term Partnership",
-    title: "School Technology Programs",
+    tag: "06 · Turnkey B2B Solution",
+    audience: "Nursery, Primary & Secondary Schools",
+    delivery: "Full-Term Managed Partnership",
+    title: "School Technology Partnerships",
     description:
-      "Complete end-to-end management of your school's ICT & STEM department: instructor recruitment and supervision, syllabus delivery, lab advisory, and event representation.",
-    outcomes: ["Zero teacher turnover disruption", "Boosted parent trust & enrollment"],
+      "Flexible delivery integrated into your school timetable, clubs, extracurriculars, holiday programs, or dedicated tech periods—with full instructor supervision, QA, and end-of-term reports.",
+    outcomes: [
+      "Instructors, lesson plans & end-of-term reports",
+      "Zero recruitment or curriculum burden",
+    ],
     image: "/images/program-schools.webp",
     filterGroup: "For Schools",
     pathway: "schools",
@@ -233,10 +334,10 @@ export const projectsAndEvents: ProjectEventItem[] = [
   {
     id: "evolve-ict",
     badge: "Flagship Competition",
-    title: "Evolve ICT Competition",
+    title: "Evolve 8.0 ICT Competition",
     summary:
-      "Our annual inter-school technology challenge bringing together young innovators from partner schools to compete in live ICT, coding, and problem-solving tasks for scholarships and cash prizes.",
-    metric: "₦200K+ Grand Prizes & Scholarships",
+      "Our annual inter-school technology programme combining a Free National Online Test with a Coding, AI & Robotics Project Track—culminating in live finals in Lagos.",
+    metric: "₦500K / ₦200K / ₦100K Prizes",
     image: "/images/evolve-award.webp",
   },
   {
@@ -244,7 +345,7 @@ export const projectsAndEvents: ProjectEventItem[] = [
     badge: "On-Campus Delivery",
     title: "Partner School ICT Engagements",
     summary:
-      "Weekly structured classroom instruction, practical lab assessments, and dedicated STEM clubs delivered seamlessly across primary and secondary schools in Lagos.",
+      "Weekly structured classroom instruction, practical lab assessments, and dedicated STEM clubs delivered seamlessly across Nursery, Primary, and Secondary schools.",
     metric: "Weekly Termly Lab Sessions",
     image: "/images/project-school-delegation.webp",
   },
@@ -262,8 +363,8 @@ export const projectsAndEvents: ProjectEventItem[] = [
     badge: "Student Showcases",
     title: "Technology Exhibitions & Demo Days",
     summary:
-      "End-of-term exhibitions and certification ceremonies where learners present working websites, robotics prototypes, and tech projects live to parents and school directors.",
-    metric: "Certified Project Showcases",
+      "End-of-term exhibitions and certification ceremonies where learners present working websites, games, robotics prototypes, and AI projects live to parents and school directors.",
+    metric: "Learn → Practice → Build → Present",
     image: "/images/about-certificate.webp",
   },
 ];
@@ -296,7 +397,7 @@ export const testimonials: TestimonialItem[] = [
     role: "Head of Academics & ICT Coordinator",
     organization: "Evolve ICT Partner School",
     quote:
-      "Beyond teaching our students coding and practical computing, Kingshouse trained our faculty on digital classroom tools and CBT readiness. Their structured supervision and termly assessments make collaboration effortless for school leadership.",
+      "Beyond teaching our students coding, robotics, and practical computing, Kingshouse strengthened our internal ICT faculty with modern digital tools and assessments. Their supervision and end-of-term reporting make collaboration effortless.",
     image: "/images/testimonial-educator.webp",
   },
   {
@@ -304,7 +405,7 @@ export const testimonials: TestimonialItem[] = [
     stakeholder: "Parent",
     name: "Mrs. Blessing Nwosu",
     role: "Parent of Evolve ICT Finalist",
-    organization: "Amuwo Odofin, Lagos",
+    organization: "Amuwo-Odofin, Lagos",
     quote:
       "Before joining Kingshouse's technology program, my children only used devices for cartoons and games. Watching my daughter confidently present her coding project on stage at the Evolve ICT Competition gave our entire family immense pride.",
     image: "/images/testimonial-parent.webp",
@@ -314,9 +415,9 @@ export const testimonials: TestimonialItem[] = [
     stakeholder: "Student Learner",
     name: "Tobi & Evolve Finalists",
     role: "Junior Innovators & Competition Winners",
-    organization: "Evolve 2.0 ICT Competition",
+    organization: "Evolve ICT Competition",
     quote:
-      "Our Kingshouse instructors make coding and robotics so practical and fun. Preparing for Evolve ICT taught us teamwork, fast problem-solving on laptops, and how to turn our ideas into working projects.",
+      "Our Kingshouse instructors make Scratch, Python, and Arduino robotics so practical and fun. Preparing for Evolve ICT taught us teamwork, fast problem-solving on laptops, and how to turn our ideas into working projects.",
     image: "/images/hero-student-joy.webp",
   },
 ];
@@ -337,41 +438,41 @@ export const resourceArticles: ResourceArticle[] = [
   {
     id: 1,
     category: "Event Recap",
-    date: "Evolve 2.0 Highlights",
+    date: "Evolve 8.0 Spotlight",
     readTime: "4 min read",
     title: "Inside the Evolve ICT Competition: Raising Lagos's Next Young Innovators",
     excerpt:
-      "How dozens of partner schools, educators, and corporate sponsors came together to celebrate practical digital competence, coding excellence, and student innovation.",
+      "How partner schools, educators, and corporate sponsors come together to celebrate practical digital competence, coding excellence, and student innovation.",
     image: "/images/evolve-award.webp",
     highlights: [
-      "Live laptop-based ICT & problem-solving challenges across participating schools",
-      "Cash prizes, scholarships, and official certificates awarded to top young innovators",
+      "Free National Online Test plus Coding, AI & Robotics Project Track",
+      "₦500,000, ₦200,000 & ₦100,000 prizes at live finals in Lagos",
       "Strong collaboration between school leadership, parents, and industry partners",
     ],
     body: [
       "The Evolve ICT Competition was created by Kingshouse Learning Centre to move technology education beyond rote classroom theory into real-world demonstration.",
-      "Across intense live rounds, primary and secondary students tackled practical computing, logical thinking, and digital creation tasks under real-time mentorship—proving what Nigerian learners achieve when given structured guidance.",
-      "Schools interested in preparing their pupils for the next edition of Evolve ICT can partner with Kingshouse for year-round curriculum delivery and competition coaching.",
+      "Now expanded into Evolve 8.0, schools participate in a Free National Online General Test alongside a 5-pupil Coding, AI, or Robotics Project Track tackling real UN SDG challenges.",
+      "Schools interested in preparing their pupils for Evolve 8.0 can register directly on our /evolve page or partner with Kingshouse for year-round curriculum delivery.",
     ],
   },
   {
     id: 2,
     category: "For School Leaders",
-    date: "Curriculum Guide",
+    date: "Partnership Guide",
     readTime: "5 min read",
     title: "How Schools Can Integrate Coding, Robotics & AI Without Recruiting Overhead",
     excerpt:
-      "A practical roadmap for proprietors and principals looking to upgrade outdated computer classes into a structured, parent-attracting STEM & EdTech program.",
+      "A practical roadmap for proprietors and principals looking to upgrade outdated computer classes into a structured, parent-attracting STEM & Cisco-aligned program.",
     image: "/images/article-curriculum.webp",
     highlights: [
-      "Why ad-hoc computer teachers struggle to maintain modern Coding & Robotics standards",
-      "How turnkey school partnerships deliver vetted instructors and termly quality audits",
-      "Aligning ICT, Coding, Robotics, and AI literacy across Primary 1 to SS3",
+      "KHLC provides instructors, lesson plans, assessments, QA & end-of-term reports",
+      "Flexible delivery across school timetables, clubs, and holiday programs",
+      "Cisco Networking Academy affiliation bringing globally endorsed student certifications",
     ],
     body: [
-      "Today's parents evaluate schools not only on traditional exam scores, but on how effectively they prepare children for an AI-driven global economy.",
-      "Yet many schools face recurring hurdles: high ICT teacher turnover, outdated textbook-only syllabi, and underutilized computer labs. Kingshouse solves this through a managed School Technology Program.",
-      "From onboarding certified instructors to running termly assessments and parent-facing demo days, our model gives schools an immediate competitive advantage with predictable termly planning.",
+      "Technology is no longer an optional addition to education. Today's parents evaluate schools on how effectively they prepare children for an increasingly technology-driven world.",
+      "Yet many schools face recurring hurdles: high ICT teacher turnover, outdated textbook-only syllabi, and underutilized computer labs. Kingshouse solves this through a managed School Technology Partnership.",
+      "From Nursery through Secondary level, our Learn → Practice → Build → Present framework gives schools a premium technology edge without the burden of building or managing the program alone.",
     ],
   },
   {
@@ -379,19 +480,19 @@ export const resourceArticles: ResourceArticle[] = [
     category: "Educator Insights",
     date: "Teacher Development",
     readTime: "4 min read",
-    title: "Empowering Teachers for the Digital Classroom: 4 Practical EdTech Shifts",
+    title: "Empowering Teachers for the Digital Classroom: Practical EdTech Shifts",
     excerpt:
-      "Technology amplifies great teaching when educators feel supported. Discover how structured capacity building boosts classroom engagement and assessment speed.",
+      "Technology amplifies great teaching when educators feel supported. Discover how structured capacity building strengthens your internal ICT and STEM teams.",
     image: "/images/article-teachers.webp",
     highlights: [
-      "Transitioning smoothly from paper-heavy grading to structured CBT assessments",
-      "Using interactive digital slides and visual demos to deepen student retention",
-      "Building faculty confidence through hands-on peer workshops rather than theory",
+      "Strengthening internal school ICT & STEM teams through guided coaching",
+      "Transitioning smoothly from theory-heavy classes to project-based learning",
+      "Building faculty confidence through hands-on workshops and practical resources",
     ],
     body: [
       "Sustainable EdTech transformation inside any school begins with empowering its teachers. Hardware and software alone never transform outcomes without confident educators leading the room.",
-      "Kingshouse's Teacher Training workshops focus on immediately usable skills—interactive lesson delivery, digital assessment preparation, and responsible AI tools that save teachers hours every week.",
-      "Book a bespoke half-day or termly Teacher Development Clinic at your school campus with our training facilitators.",
+      "Kingshouse's Teacher Support & Capacity Building workshops focus on immediately usable skills—interactive digital delivery, project supervision, and structured student assessments.",
+      "Download our School Partnership Brochure or book a consultation to design a custom capacity-building plan for your faculty.",
     ],
   },
 ];

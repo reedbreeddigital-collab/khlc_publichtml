@@ -3,7 +3,11 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Check, ArrowRight, PhoneCall } from "lucide-react";
-import { khlcContact, type EnquiryPathwayId } from "@/data/khlc";
+import {
+  khlcContact,
+  approachSteps,
+  type EnquiryPathwayId,
+} from "@/data/khlc";
 
 interface AboutSectionProps {
   onSelectPathway?: (pathway: EnquiryPathwayId, context?: string) => void;
@@ -11,30 +15,30 @@ interface AboutSectionProps {
 
 const tabs = [
   {
+    id: "about",
+    label: "Who We Are",
+    description:
+      "Technology is no longer an optional addition to education. Kingshouse Learning Centre (KHLC) is a leading EdTech organization that partners with Nursery, Primary, and Secondary schools to deliver structured, engaging, and practical technology education—without the burden of developing the curriculum, recruiting specialized instructors, or managing programs alone.",
+  },
+  {
     id: "mission",
     label: "Our Mission",
     description:
-      "To deliver structured, practical, and future-focused technology education that transforms how schools teach ICT, Coding, Robotics, and AI—equipping every learner with real digital competence and confidence.",
+      "To equip learners with practical digital, computational, and problem-solving skills that prepare them for further education, future careers, and an increasingly technology-driven world—while empowering schools with reliable, managed STEM delivery.",
   },
   {
     id: "vision",
     label: "Our Vision",
     description:
-      "To be Africa's most trusted school technology education partner, raising a generation of young innovators, problem-solvers, and digitally empowered educators ready to lead tomorrow's innovation economy.",
-  },
-  {
-    id: "approach",
-    label: "Our Approach",
-    description:
-      "We move classrooms beyond theory. By combining vetted, supervised instructors, age-graded hands-on curricula, regular practical assessments, and flagship events like the Evolve ICT Competition, we make impact measurable.",
+      "Raising a generation of creators, innovators, and problem-solvers by connecting African schools and learners to industry-aligned curricula, hands-on engineering, and globally recognized Cisco Networking Academy pathways.",
   },
 ];
 
 const pillars = [
-  "Structured School Curricula",
-  "Vetted & Certified Instructors",
-  "Hands-On Project Learning",
-  "Measurable Termly Assessments",
+  "Structured Age-Graded Curricula",
+  "Experienced & Supervised Instructors",
+  "Flexible Timetable & Club Delivery",
+  "Cisco Networking Academy Affiliated",
 ];
 
 const riseUp = {
@@ -51,7 +55,7 @@ const riseUp = {
 };
 
 export default function AboutSection({ onSelectPathway }: AboutSectionProps) {
-  const [activeTab, setActiveTab] = useState("mission");
+  const [activeTab, setActiveTab] = useState("about");
   const currentTab = tabs.find((t) => t.id === activeTab) || tabs[0];
 
   return (
@@ -100,7 +104,7 @@ export default function AboutSection({ onSelectPathway }: AboutSectionProps) {
             </motion.div>
           </motion.div>
 
-          {/* Right Column: About Kingshouse Copy, Tabs, Pillars & CTA */}
+          {/* Right Column: About KHLC Copy, Tabs, Pillars & CTA */}
           <motion.div
             initial="hidden"
             whileInView="visible"
@@ -128,12 +132,12 @@ export default function AboutSection({ onSelectPathway }: AboutSectionProps) {
               custom={0.1}
               className="text-3xl font-extrabold leading-[1.18] tracking-tight text-[#0d002b] sm:text-4xl"
             >
-              Your Trusted EdTech Partner for{" "}
-              <span className="text-[#3b00b3]">Structured Technology</span>{" "}
-              Education
+              Empowering Schools,{" "}
+              <span className="text-[#3b00b3]">Inspiring Future</span>{" "}
+              Innovators
             </motion.h2>
 
-            {/* Interactive Pill Tabs: Our Mission | Our Vision | Our Approach */}
+            {/* Interactive Pill Tabs */}
             <motion.div
               variants={riseUp}
               custom={0.2}
@@ -185,7 +189,7 @@ export default function AboutSection({ onSelectPathway }: AboutSectionProps) {
               ))}
             </motion.div>
 
-            {/* Bottom CTA Row: Book Consultation + Real Lagos Telephone */}
+            {/* Bottom CTA Row */}
             <motion.div
               variants={riseUp}
               custom={0.44}
@@ -224,6 +228,54 @@ export default function AboutSection({ onSelectPathway }: AboutSectionProps) {
             </motion.div>
           </motion.div>
         </div>
+
+        {/* Brochure Signature 4-Step Framework: Learn -> Practice -> Build -> Present */}
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.2 }}
+          className="mt-20 rounded-3xl border border-[#3b00b3]/15 bg-white p-6 sm:p-8 shadow-[0_16px_45px_rgba(13,0,43,0.06)]"
+        >
+          <div className="flex flex-col justify-between gap-3 border-b border-gray-100 pb-5 md:flex-row md:items-end">
+            <div>
+              <span className="text-[11px] font-extrabold uppercase tracking-[0.15em] text-[#3b00b3]">
+                OUR PRACTICAL APPROACH
+              </span>
+              <h3 className="mt-1 text-xl sm:text-2xl font-extrabold text-[#0d002b]">
+                Learn → Practice → Build → Present
+              </h3>
+            </div>
+            <p className="text-xs sm:text-sm font-semibold text-gray-500">
+              Our program emphasizes practical learning rather than theory.
+            </p>
+          </div>
+
+          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {approachSteps.map((item, idx) => (
+              <motion.div
+                key={item.title}
+                variants={riseUp}
+                custom={0.08 * idx}
+                className="relative rounded-2xl border border-gray-100 bg-[#faf9ff] p-5 transition-all hover:-translate-y-1 hover:border-[#3b00b3]/30 hover:bg-white hover:shadow-md"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="rounded-lg bg-[#3b00b3] px-2.5 py-1 text-[11px] font-extrabold text-[#9dff13]">
+                    {item.step}
+                  </span>
+                  {idx < approachSteps.length - 1 && (
+                    <ArrowRight className="hidden lg:block h-4 w-4 text-[#3b00b3]/40" />
+                  )}
+                </div>
+                <h4 className="mt-3.5 text-base font-extrabold text-[#0d002b]">
+                  {item.title}
+                </h4>
+                <p className="mt-1.5 text-xs leading-relaxed text-gray-600">
+                  {item.detail}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
       </div>
     </section>
   );

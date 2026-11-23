@@ -8,8 +8,10 @@ import {
   ArrowRight,
   X,
   CheckCircle2,
+  Download,
 } from "lucide-react";
 import {
+  khlcContact,
   resourceArticles,
   type ResourceArticle,
   type EnquiryPathwayId,
@@ -102,17 +104,12 @@ export default function ArticlesSection({
 
           <motion.div variants={riseUp} custom={0.18}>
             <a
-              href="#contact"
-              onClick={(e) => {
-                if (onSelectPathway) {
-                  e.preventDefault();
-                  onSelectPathway("schools", "Request Curriculum Brochure");
-                }
-              }}
+              href={khlcContact.brochureUrl}
+              download="Kingshouse-School-Partnership-Brochure.pdf"
               className="group inline-flex items-center gap-2 rounded-lg bg-[#3b00b3] px-5 py-3 text-xs font-bold text-white shadow-[0_8px_20px_rgba(59,0,179,0.22)] transition-all duration-200 hover:bg-[#9dff13] hover:text-[#0d002b]"
             >
-              <span>Request School Curriculum Pack</span>
-              <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-1" />
+              <Download className="h-3.5 w-3.5" />
+              <span>Download School Brochure (PDF)</span>
             </a>
           </motion.div>
         </motion.div>

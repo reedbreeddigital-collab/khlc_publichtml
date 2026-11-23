@@ -68,7 +68,7 @@ func TestSubscribeNewsletterValidation(t *testing.T) {
 		t.Fatalf("expected status 400 for invalid email, got %d", badRec.Code)
 	}
 
-	goodReq := httptest.NewRequest(http.MethodPost, "/api/v1/newsletter", bytes.NewReader([]byte(`{"email":"info@kinghouselearning.com"}`)))
+	goodReq := httptest.NewRequest(http.MethodPost, "/api/v1/newsletter", bytes.NewReader([]byte(`{"email":"info@kingshouselearning.com"}`)))
 	goodRec := httptest.NewRecorder()
 	h.SubscribeNewsletter(goodRec, goodReq)
 
@@ -89,7 +89,7 @@ func TestEvolveRegistration(t *testing.T) {
 		"coordinatorName": "Mr. David Okeke",
 		"coordinatorRole": "Assigned KHLC Instructor",
 		"phone": "09139386220",
-		"email": "info@kinghouselearning.com",
+		"email": "info@kingshouselearning.com",
 		"projectCategory": "Secondary",
 		"projectPath": "Robotics",
 		"projectTheme": "Theme 1: Education (SDG 4)",
