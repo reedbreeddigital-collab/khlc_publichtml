@@ -23,6 +23,8 @@ import {
   Cpu,
   Mail,
   Download,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import KhlcLogo from "@/components/KhlcLogo";
 import CrmModule from "@/components/admin/CrmModule";
@@ -100,6 +102,7 @@ export default function AdminDashboardPage() {
   const [authChecked, setAuthChecked] = useState(false);
   const [loginEmail, setLoginEmail] = useState("admin@kingshouselearning.com");
   const [loginPassword, setLoginPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [loggingIn, setLoggingIn] = useState(false);
 
@@ -597,14 +600,28 @@ export default function AdminDashboardPage() {
               <label className="block text-xs font-bold text-[#0d002b]">
                 Admin Password / Passcode
               </label>
-              <input
-                type="password"
-                required
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                placeholder="Enter admin password"
-                className="mt-1 w-full rounded-xl border border-gray-200 bg-[#faf9ff] px-3.5 py-2.5 text-sm text-[#0d002b] focus:border-[#3b00b3] focus:bg-white focus:outline-none"
-              />
+              <div className="relative mt-1">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  placeholder="Enter admin password"
+                  className="w-full rounded-xl border border-gray-200 bg-[#faf9ff] py-2.5 pl-3.5 pr-11 text-sm text-[#0d002b] focus:border-[#3b00b3] focus:bg-white focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-[#3b00b3] transition-colors"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
             </div>
 
             <button

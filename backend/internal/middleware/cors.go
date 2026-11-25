@@ -11,29 +11,33 @@ import (
 // allowedOrigin may be "*", a single origin, or a comma-separated list of origins.
 func CORS(allowedOrigin string, next http.Handler) http.Handler {
 	origins := make([]string, 0)
+	allowAll := false
 	for _, part := range strings.Split(allowedOrigin, ",") {
-		if trimmed := strings.TrimSpace(part); trimmed != "" {
-			origins = append(origins, trimmed)
+		trimmed := strings.TrimRight(strings.TrimSpace(part), "/")
+		if trimmed == "" {
+			continue
 		}
+		if trimmed == "*" {
+			allowAll = true
+		}
+		origins = append(origins, trimmed)
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reqOrigin := r.Header.Get("Origin")
-		headerOrigin := allowedOrigin
+		reqOrigin := strings.TrimRight(strings.TrimSpace(r.Header.Get("Origin")), "/")
+		headerOrigin := ""
 
-		if len(origins) == 1 && origins[0] == "*" {
+		if allowAll {
 			headerOrigin = "*"
 		} else if reqOrigin != "" {
-			matched := false
 			for _, o := range origins {
-				if o == reqOrigin || o == "*" {
+				if strings.EqualFold(o, reqOrigin) {
 					headerOrigin = reqOrigin
-					matched = true
 					break
 				}
 			}
-			// In local dev, allow localhost/127.0.0.1 variants when default localhost is configured
-			if !matched && (strings.HasPrefix(reqOrigin, "http://localhost:") || strings.HasPrefix(reqOrigin, "http://127.0.0.1:")) {
+			// In local dev, allow localhost/127.0.0.1 variants when a localhost origin is configured
+			if headerOrigin == "" && (strings.HasPrefix(reqOrigin, "http://localhost:") || strings.HasPrefix(reqOrigin, "http://127.0.0.1:")) {
 				for _, o := range origins {
 					if strings.HasPrefix(o, "http://localhost:") || strings.HasPrefix(o, "http://127.0.0.1:") {
 						headerOrigin = reqOrigin
@@ -41,9 +45,13 @@ func CORS(allowedOrigin string, next http.Handler) http.Handler {
 					}
 				}
 			}
+		} else if len(origins) > 0 {
+			headerOrigin = origins[0]
 		}
 
-		w.Header().Set("Access-Control-Allow-Origin", headerOrigin)
+		if headerOrigin != "" {
+			w.Header().Set("Access-Control-Allow-Origin", headerOrigin)
+		}
 		w.Header().Set("Vary", "Origin")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Student-Token")

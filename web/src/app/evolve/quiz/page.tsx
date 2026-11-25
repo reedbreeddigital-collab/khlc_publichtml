@@ -18,6 +18,8 @@ import {
   Play,
   Award,
   Sparkles,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import KhlcLogo from "@/components/KhlcLogo";
 import {
@@ -64,6 +66,7 @@ export default function EvolveQuizPortalPage() {
   // Login form
   const [examCode, setExamCode] = useState("");
   const [pin, setPin] = useState("");
+  const [showPin, setShowPin] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -418,16 +421,30 @@ export default function EvolveQuizPortalPage() {
                   >
                     6-Digit Exam PIN *
                   </label>
-                  <input
-                    id="exam-pin"
-                    type="password"
-                    inputMode="numeric"
-                    required
-                    value={pin}
-                    onChange={(e) => setPin(e.target.value)}
-                    placeholder="Enter 6-digit PIN"
-                    className="mt-1.5 w-full rounded-xl border border-gray-200 bg-[#faf9ff] px-4 py-3 font-mono text-sm font-extrabold tracking-widest text-[#0d002b] placeholder:font-sans placeholder:font-normal placeholder:tracking-normal focus:border-[#3b00b3] focus:bg-white focus:outline-none"
-                  />
+                  <div className="relative mt-1.5">
+                    <input
+                      id="exam-pin"
+                      type={showPin ? "text" : "password"}
+                      inputMode="numeric"
+                      required
+                      value={pin}
+                      onChange={(e) => setPin(e.target.value)}
+                      placeholder="Enter 6-digit PIN"
+                      className="w-full rounded-xl border border-gray-200 bg-[#faf9ff] py-3 pl-4 pr-11 font-mono text-sm font-extrabold tracking-widest text-[#0d002b] placeholder:font-sans placeholder:font-normal placeholder:tracking-normal focus:border-[#3b00b3] focus:bg-white focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPin((prev) => !prev)}
+                      aria-label={showPin ? "Hide PIN" : "Show PIN"}
+                      className="absolute inset-y-0 right-0 flex items-center px-3.5 text-gray-400 hover:text-[#3b00b3] transition-colors"
+                    >
+                      {showPin ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 <button
