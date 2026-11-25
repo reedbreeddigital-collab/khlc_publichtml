@@ -137,6 +137,8 @@ func Migrate(ctx context.Context, unpooledURL, fallbackPooledURL string) error {
 			title TEXT NOT NULL,
 			edition TEXT NOT NULL DEFAULT 'Evolve 8.0',
 			level TEXT NOT NULL,
+			topics JSONB NOT NULL DEFAULT '[]'::jsonb,
+			question_limit INTEGER NOT NULL DEFAULT 0,
 			duration_minutes INTEGER NOT NULL DEFAULT 30,
 			starts_at TIMESTAMPTZ NOT NULL,
 			ends_at TIMESTAMPTZ NOT NULL,
@@ -149,6 +151,8 @@ func Migrate(ctx context.Context, unpooledURL, fallbackPooledURL string) error {
 			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 			updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 		)`,
+		`ALTER TABLE quizzes ADD COLUMN IF NOT EXISTS topics JSONB NOT NULL DEFAULT '[]'::jsonb`,
+		`ALTER TABLE quizzes ADD COLUMN IF NOT EXISTS question_limit INTEGER NOT NULL DEFAULT 0`,
 		`CREATE TABLE IF NOT EXISTS questions (
 			id TEXT PRIMARY KEY,
 			quiz_id TEXT NOT NULL DEFAULT '',

@@ -551,6 +551,18 @@ export default function EvolveQuizPortalPage() {
                     Assigned National Assessment
                   </p>
                   <h2 className="mt-1 text-lg font-extrabold">{quiz.title}</h2>
+                  {quiz.topics && quiz.topics.length > 0 && (
+                    <div className="mt-2.5 flex flex-wrap gap-1.5">
+                      {quiz.topics.map((t) => (
+                        <span
+                          key={t}
+                          className="rounded-full bg-white/10 px-2.5 py-0.5 text-[10px] font-bold text-[#38e0ff]"
+                        >
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   <div className="mt-4 grid grid-cols-3 gap-3 text-center">
                     <div className="rounded-xl bg-white/10 p-3">
                       <p className="text-[10px] uppercase text-white/60">

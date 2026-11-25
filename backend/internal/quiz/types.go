@@ -8,6 +8,8 @@ type Quiz struct {
 	Title            string    `json:"title"`
 	Edition          string    `json:"edition"`
 	Level            string    `json:"level"` // junior | intermediate | senior
+	Topics           []string  `json:"topics"` // empty = all topics
+	QuestionLimit    int       `json:"questionLimit"` // 0 = all matching questions
 	DurationMinutes  int       `json:"durationMinutes"`
 	StartsAt         time.Time `json:"startsAt"`
 	EndsAt           time.Time `json:"endsAt"`

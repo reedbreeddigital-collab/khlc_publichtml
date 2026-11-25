@@ -14,6 +14,7 @@ import {
   FileQuestion,
   X,
   Shuffle,
+  Tag,
 } from "lucide-react";
 import {
   type QuizWithStats,
@@ -22,12 +23,22 @@ import {
   levelLabel,
 } from "@/lib/quizApi";
 
+const DEFAULT_TOPICS = [
+  "Digital Literacy",
+  "Coding",
+  "Robotics",
+  "AI",
+  "Logic",
+];
+
 interface QuizManagerModuleProps {
   quizzes: QuizWithStats[];
   onCreateQuiz: (payload: {
     title: string;
     edition: string;
     level: CompetitionLevel;
+    topics: string[];
+    questionLimit: number;
     durationMinutes: number;
     startsAt: string;
     endsAt: string;
@@ -42,6 +53,8 @@ interface QuizManagerModuleProps {
     patch: Partial<{
       title: string;
       level: CompetitionLevel;
+      topics: string[];
+      questionLimit: number;
       durationMinutes: number;
       startsAt: string;
       endsAt: string;
@@ -89,6 +102,9 @@ export default function QuizManagerModule({
 
   const [title, setTitle] = useState("");
   const [level, setLevel] = useState<CompetitionLevel>("junior");
+  const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
+  const [customTopic, setCustomTopic] = useState("");
+  const [questionLimit, setQuestionLimit] = useState(0);
   const [durationMinutes, setDurationMinutes] = useState(30);
   const [startsAt, setStartsAt] = useState(toDatetimeLocal(now.toISOString()));
   const [endsAt, setEndsAt] = useState(toDatetimeLocal(nextWeek.toISOString()));
@@ -102,6 +118,9 @@ export default function QuizManagerModule({
     setEditing(null);
     setTitle("Evolve 8.0 Phase 1 — National Online Test");
     setLevel("junior");
+    setSelectedTopics([]);
+    setCustomTopic("");
+    setQuestionLimit(0);
     setDurationMinutes(30);
     setStartsAt(toDatetimeLocal(new Date().toISOString()));
     setEndsAt(
@@ -120,6 +139,9 @@ export default function QuizManagerModule({
     setEditing(q);
     setTitle(q.title);
     setLevel(q.level);
+    setSelectedTopics(q.topics || []);
+    setCustomTopic("");
+    setQuestionLimit(q.questionLimit || 0);
     setDurationMinutes(q.durationMinutes);
     setStartsAt(toDatetimeLocal(q.startsAt));
     setEndsAt(toDatetimeLocal(q.endsAt));
@@ -132,6 +154,23 @@ export default function QuizManagerModule({
     setModalOpen(true);
   };
 
+  const toggleTopic = (topic: string) => {
+    setSelectedTopics((prev) =>
+      prev.some((t) => t.toLowerCase() === topic.toLowerCase())
+        ? prev.filter((t) => t.toLowerCase() !== topic.toLowerCase())
+        : [...prev, topic]
+    );
+  };
+
+  const addCustomTopic = () => {
+    const clean = customTopic.trim();
+    if (!clean) return;
+    if (!selectedTopics.some((t) => t.toLowerCase() === clean.toLowerCase())) {
+      setSelectedTopics((prev) => [...prev, clean]);
+    }
+    setCustomTopic("");
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -139,10 +178,13 @@ export default function QuizManagerModule({
     try {
       const startsIso = new Date(startsAt).toISOString();
       const endsIso = new Date(endsAt).toISOString();
+      const cleanLimit = Math.max(0, Number(questionLimit) || 0);
       if (editing) {
         await onUpdateQuiz(editing.id, {
           title,
           level,
+          topics: selectedTopics,
+          questionLimit: cleanLimit,
           durationMinutes: Number(durationMinutes),
           startsAt: startsIso,
           endsAt: endsIso,
@@ -157,6 +199,8 @@ export default function QuizManagerModule({
           title,
           edition: "Evolve 8.0",
           level,
+          topics: selectedTopics,
+          questionLimit: cleanLimit,
           durationMinutes: Number(durationMinutes),
           startsAt: startsIso,
           endsAt: endsIso,
@@ -175,6 +219,10 @@ export default function QuizManagerModule({
     }
   };
 
+  const allTopicChips = Array.from(
+    new Set([...DEFAULT_TOPICS, ...selectedTopics])
+  );
+
   return (
     <div className="space-y-6">
       {/* Header Banner */}
@@ -188,9 +236,9 @@ export default function QuizManagerModule({
             Evolve 8.0 Quiz &amp; Schedule Manager
           </h2>
           <p className="text-xs text-gray-500">
-            Configure timed sittings per level (Junior, Intermediate, Senior),
-            open/close schedule windows, and publish official national rankings
-            (700 / 1,000 pass mark).
+            Configure timed sittings per level, select included topics, set the
+            number of questions per sitting, manage schedule windows, and
+            publish official rankings.
           </p>
         </div>
         <button
@@ -240,6 +288,25 @@ export default function QuizManagerModule({
                   {q.title}
                 </h3>
 
+                {/* Topic Badges */}
+                <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                  <Tag className="h-3 w-3 text-[#3b00b3]" />
+                  {q.topics && q.topics.length > 0 ? (
+                    q.topics.map((t) => (
+                      <span
+                        key={t}
+                        className="rounded-md bg-[#faf6ff] border border-[#3b00b3]/15 px-2 py-0.5 text-[10px] font-bold text-[#3b00b3]"
+                      >
+                        {t}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="rounded-md bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-600">
+                      All Topics
+                    </span>
+                  )}
+                </div>
+
                 <div className="mt-3 space-y-1.5 text-xs text-gray-600">
                   <div className="flex items-center gap-2">
                     <Clock className="h-3.5 w-3.5 text-[#3b00b3]" />
@@ -247,6 +314,17 @@ export default function QuizManagerModule({
                       <strong>{q.durationMinutes} mins</strong> · Pass mark:{" "}
                       <strong>
                         {q.passMark} / {q.maxScore}
+                      </strong>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[11px] text-gray-500">
+                    <FileQuestion className="h-3.5 w-3.5 text-gray-400" />
+                    <span>
+                      Questions per sitting:{" "}
+                      <strong>
+                        {q.questionLimit && q.questionLimit > 0
+                          ? `Up to ${q.questionLimit}`
+                          : "All matching"}
                       </strong>
                     </span>
                   </div>
@@ -373,8 +451,8 @@ export default function QuizManagerModule({
 
       {/* Create / Edit Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0d002b]/60 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0d002b]/60 p-4 overflow-y-auto backdrop-blur-xs">
+          <div className="w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl my-6 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
               <h3 className="text-base font-extrabold text-[#0d002b]">
                 {editing ? "Edit Scheduled Quiz" : "Create Scheduled Quiz"}
@@ -443,6 +521,70 @@ export default function QuizManagerModule({
                 </div>
               </div>
 
+              {/* Configurable Topics */}
+              <div className="rounded-2xl border border-gray-200 bg-[#faf9ff] p-3.5">
+                <div className="flex items-center justify-between gap-2">
+                  <label className="text-xs font-extrabold text-[#0d002b]">
+                    Included Topics
+                  </label>
+                  <span className="text-[10px] font-bold text-gray-500">
+                    {selectedTopics.length === 0
+                      ? "All Topics included"
+                      : `${selectedTopics.length} selected`}
+                  </span>
+                </div>
+                <p className="mt-0.5 text-[11px] text-gray-500">
+                  Leave all unchecked to include every topic in the Question
+                  Bank, or pick specific topics for this quiz.
+                </p>
+
+                <div className="mt-2.5 flex flex-wrap gap-2">
+                  {allTopicChips.map((topic) => {
+                    const active = selectedTopics.some(
+                      (t) => t.toLowerCase() === topic.toLowerCase()
+                    );
+                    return (
+                      <button
+                        key={topic}
+                        type="button"
+                        onClick={() => toggleTopic(topic)}
+                        className={`rounded-full px-3 py-1 text-[11px] font-extrabold transition-all ${
+                          active
+                            ? "bg-[#3b00b3] text-[#9dff13] shadow-xs"
+                            : "border border-gray-200 bg-white text-gray-600 hover:border-[#3b00b3]/40 hover:text-[#3b00b3]"
+                        }`}
+                      >
+                        {active ? "✓ " : "+ "}
+                        {topic}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-2.5 flex gap-2">
+                  <input
+                    type="text"
+                    value={customTopic}
+                    onChange={(e) => setCustomTopic(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addCustomTopic();
+                      }
+                    }}
+                    placeholder="Add custom topic (e.g. Cybersecurity, Scratch)..."
+                    className="flex-1 rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs focus:border-[#3b00b3] focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={addCustomTopic}
+                    className="rounded-xl bg-[#100038] px-3 py-1.5 text-[11px] font-extrabold text-[#9dff13] hover:bg-[#3b00b3] hover:text-white"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-[#0d002b]">
@@ -470,7 +612,24 @@ export default function QuizManagerModule({
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div>
+                  <label className="block text-xs font-bold text-[#0d002b]">
+                    No. of Questions
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={500}
+                    value={questionLimit}
+                    onChange={(e) => setQuestionLimit(Number(e.target.value))}
+                    placeholder="0 = All"
+                    className="mt-1 w-full rounded-xl border border-gray-200 bg-[#faf9ff] px-3 py-2 text-xs font-bold focus:border-[#3b00b3] focus:outline-none"
+                  />
+                  <p className="mt-0.5 text-[10px] text-gray-400">
+                    0 = all matching
+                  </p>
+                </div>
                 <div>
                   <label className="block text-xs font-bold text-[#0d002b]">
                     Duration (mins)

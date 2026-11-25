@@ -27,12 +27,16 @@ func NewPostgresStore(pool *pgxpool.Pool) *PostgresStore {
 
 func (p *PostgresStore) ListQuizzes(ctx context.Context) ([]QuizWithStats, error) {
 	rows, err := p.pool.Query(ctx, `
-		SELECT q.id, q.title, q.edition, q.level, q.duration_minutes, q.starts_at, q.ends_at,
+		SELECT q.id, q.title, q.edition, q.level, q.topics, q.question_limit, q.duration_minutes, q.starts_at, q.ends_at,
 		       q.max_score, q.pass_mark, q.shuffle_questions, q.shuffle_options, q.status,
 		       q.results_published, q.created_at, q.updated_at,
 		       (SELECT COUNT(*) FROM questions qs
 		         WHERE qs.active = TRUE
-		           AND (qs.quiz_id = q.id OR (qs.quiz_id = '' AND (qs.level_scope = 'shared' OR qs.level_scope = q.level)))) AS question_count,
+		           AND (qs.quiz_id = q.id OR (qs.quiz_id = '' AND (qs.level_scope = 'shared' OR qs.level_scope = q.level)))
+		           AND (jsonb_array_length(q.topics) = 0 OR EXISTS (
+		             SELECT 1 FROM jsonb_array_elements_text(q.topics) AS t(val)
+		             WHERE LOWER(t.val) = LOWER(qs.topic)
+		           ))) AS question_count,
 		       (SELECT COUNT(*) FROM quiz_attempts a WHERE a.quiz_id = q.id) AS attempt_count,
 		       (SELECT COUNT(*) FROM quiz_attempts a WHERE a.quiz_id = q.id AND a.status IN ('submitted', 'expired')) AS submitted_count,
 		       (SELECT COUNT(*) FROM quiz_attempts a WHERE a.quiz_id = q.id AND a.passed = TRUE) AS passed_count
@@ -47,14 +51,22 @@ func (p *PostgresStore) ListQuizzes(ctx context.Context) ([]QuizWithStats, error
 	out := make([]QuizWithStats, 0)
 	for rows.Next() {
 		var item QuizWithStats
+		var topicsRaw []byte
 		if err := rows.Scan(
-			&item.ID, &item.Title, &item.Edition, &item.Level, &item.DurationMinutes,
+			&item.ID, &item.Title, &item.Edition, &item.Level, &topicsRaw, &item.QuestionLimit, &item.DurationMinutes,
 			&item.StartsAt, &item.EndsAt, &item.MaxScore, &item.PassMark,
 			&item.ShuffleQuestions, &item.ShuffleOptions, &item.Status,
 			&item.ResultsPublished, &item.CreatedAt, &item.UpdatedAt,
 			&item.QuestionCount, &item.AttemptCount, &item.SubmittedCount, &item.PassedCount,
 		); err != nil {
 			return nil, err
+		}
+		_ = json.Unmarshal(topicsRaw, &item.Topics)
+		if item.Topics == nil {
+			item.Topics = make([]string, 0)
+		}
+		if item.QuestionLimit > 0 && item.QuestionLimit < item.QuestionCount {
+			item.QuestionCount = item.QuestionLimit
 		}
 		out = append(out, item)
 	}
@@ -63,13 +75,14 @@ func (p *PostgresStore) ListQuizzes(ctx context.Context) ([]QuizWithStats, error
 
 func (p *PostgresStore) GetQuiz(ctx context.Context, id string) (*Quiz, error) {
 	var q Quiz
+	var topicsRaw []byte
 	err := p.pool.QueryRow(ctx, `
-		SELECT id, title, edition, level, duration_minutes, starts_at, ends_at,
+		SELECT id, title, edition, level, topics, question_limit, duration_minutes, starts_at, ends_at,
 		       max_score, pass_mark, shuffle_questions, shuffle_options, status,
 		       results_published, created_at, updated_at
 		FROM quizzes WHERE id = $1
 	`, id).Scan(
-		&q.ID, &q.Title, &q.Edition, &q.Level, &q.DurationMinutes,
+		&q.ID, &q.Title, &q.Edition, &q.Level, &topicsRaw, &q.QuestionLimit, &q.DurationMinutes,
 		&q.StartsAt, &q.EndsAt, &q.MaxScore, &q.PassMark,
 		&q.ShuffleQuestions, &q.ShuffleOptions, &q.Status,
 		&q.ResultsPublished, &q.CreatedAt, &q.UpdatedAt,
@@ -80,13 +93,18 @@ func (p *PostgresStore) GetQuiz(ctx context.Context, id string) (*Quiz, error) {
 	if err != nil {
 		return nil, err
 	}
+	_ = json.Unmarshal(topicsRaw, &q.Topics)
+	if q.Topics == nil {
+		q.Topics = make([]string, 0)
+	}
 	return &q, nil
 }
 
 func (p *PostgresStore) GetActiveQuizForLevel(ctx context.Context, level string) (*Quiz, error) {
 	var q Quiz
+	var topicsRaw []byte
 	err := p.pool.QueryRow(ctx, `
-		SELECT id, title, edition, level, duration_minutes, starts_at, ends_at,
+		SELECT id, title, edition, level, topics, question_limit, duration_minutes, starts_at, ends_at,
 		       max_score, pass_mark, shuffle_questions, shuffle_options, status,
 		       results_published, created_at, updated_at
 		FROM quizzes
@@ -99,7 +117,7 @@ func (p *PostgresStore) GetActiveQuizForLevel(ctx context.Context, level string)
 		END, updated_at DESC
 		LIMIT 1
 	`, level).Scan(
-		&q.ID, &q.Title, &q.Edition, &q.Level, &q.DurationMinutes,
+		&q.ID, &q.Title, &q.Edition, &q.Level, &topicsRaw, &q.QuestionLimit, &q.DurationMinutes,
 		&q.StartsAt, &q.EndsAt, &q.MaxScore, &q.PassMark,
 		&q.ShuffleQuestions, &q.ShuffleOptions, &q.Status,
 		&q.ResultsPublished, &q.CreatedAt, &q.UpdatedAt,
@@ -110,18 +128,26 @@ func (p *PostgresStore) GetActiveQuizForLevel(ctx context.Context, level string)
 	if err != nil {
 		return nil, err
 	}
+	_ = json.Unmarshal(topicsRaw, &q.Topics)
+	if q.Topics == nil {
+		q.Topics = make([]string, 0)
+	}
 	return &q, nil
 }
 
 func (p *PostgresStore) CreateQuiz(ctx context.Context, q Quiz) (*Quiz, error) {
+	if q.Topics == nil {
+		q.Topics = make([]string, 0)
+	}
+	topicsJSON, _ := json.Marshal(q.Topics)
 	_, err := p.pool.Exec(ctx, `
 		INSERT INTO quizzes (
-			id, title, edition, level, duration_minutes, starts_at, ends_at,
+			id, title, edition, level, topics, question_limit, duration_minutes, starts_at, ends_at,
 			max_score, pass_mark, shuffle_questions, shuffle_options, status,
 			results_published, created_at, updated_at
-		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+		) VALUES ($1,$2,$3,$4,$5::jsonb,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
 	`,
-		q.ID, q.Title, q.Edition, q.Level, q.DurationMinutes, q.StartsAt, q.EndsAt,
+		q.ID, q.Title, q.Edition, q.Level, string(topicsJSON), q.QuestionLimit, q.DurationMinutes, q.StartsAt, q.EndsAt,
 		q.MaxScore, q.PassMark, q.ShuffleQuestions, q.ShuffleOptions, q.Status,
 		q.ResultsPublished, q.CreatedAt, q.UpdatedAt,
 	)
@@ -132,14 +158,18 @@ func (p *PostgresStore) CreateQuiz(ctx context.Context, q Quiz) (*Quiz, error) {
 }
 
 func (p *PostgresStore) UpdateQuiz(ctx context.Context, q Quiz) (*Quiz, error) {
+	if q.Topics == nil {
+		q.Topics = make([]string, 0)
+	}
+	topicsJSON, _ := json.Marshal(q.Topics)
 	tag, err := p.pool.Exec(ctx, `
 		UPDATE quizzes
-		SET title=$2, edition=$3, level=$4, duration_minutes=$5, starts_at=$6, ends_at=$7,
-		    max_score=$8, pass_mark=$9, shuffle_questions=$10, shuffle_options=$11,
-		    status=$12, results_published=$13, updated_at=$14
+		SET title=$2, edition=$3, level=$4, topics=$5::jsonb, question_limit=$6, duration_minutes=$7, starts_at=$8, ends_at=$9,
+		    max_score=$10, pass_mark=$11, shuffle_questions=$12, shuffle_options=$13,
+		    status=$14, results_published=$15, updated_at=$16
 		WHERE id=$1
 	`,
-		q.ID, q.Title, q.Edition, q.Level, q.DurationMinutes, q.StartsAt, q.EndsAt,
+		q.ID, q.Title, q.Edition, q.Level, string(topicsJSON), q.QuestionLimit, q.DurationMinutes, q.StartsAt, q.EndsAt,
 		q.MaxScore, q.PassMark, q.ShuffleQuestions, q.ShuffleOptions,
 		q.Status, q.ResultsPublished, q.UpdatedAt,
 	)

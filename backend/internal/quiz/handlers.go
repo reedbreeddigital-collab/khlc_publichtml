@@ -131,18 +131,20 @@ func (h *Handler) ListQuizzes(w http.ResponseWriter, r *http.Request) {
 // CreateQuiz handles POST /api/v1/admin/quizzes.
 func (h *Handler) CreateQuiz(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Title            string `json:"title"`
-		Edition          string `json:"edition"`
-		Level            string `json:"level"`
-		DurationMinutes  int    `json:"durationMinutes"`
-		StartsAt         string `json:"startsAt"`
-		EndsAt           string `json:"endsAt"`
-		MaxScore         int    `json:"maxScore"`
-		PassMark         int    `json:"passMark"`
-		ShuffleQuestions *bool  `json:"shuffleQuestions"`
-		ShuffleOptions   *bool  `json:"shuffleOptions"`
-		Status           string `json:"status"`
-		ResultsPublished bool   `json:"resultsPublished"`
+		Title            string   `json:"title"`
+		Edition          string   `json:"edition"`
+		Level            string   `json:"level"`
+		Topics           []string `json:"topics"`
+		QuestionLimit    int      `json:"questionLimit"`
+		DurationMinutes  int      `json:"durationMinutes"`
+		StartsAt         string   `json:"startsAt"`
+		EndsAt           string   `json:"endsAt"`
+		MaxScore         int      `json:"maxScore"`
+		PassMark         int      `json:"passMark"`
+		ShuffleQuestions *bool    `json:"shuffleQuestions"`
+		ShuffleOptions   *bool    `json:"shuffleOptions"`
+		Status           string   `json:"status"`
+		ResultsPublished bool     `json:"resultsPublished"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid JSON request body"})
@@ -218,11 +220,18 @@ func (h *Handler) CreateQuiz(w http.ResponseWriter, r *http.Request) {
 		shuffleO = *req.ShuffleOptions
 	}
 
+	questionLimit := req.QuestionLimit
+	if questionLimit < 0 {
+		questionLimit = 0
+	}
+
 	q := Quiz{
 		ID:               fmt.Sprintf("quiz_%d", now.UnixNano()),
 		Title:            req.Title,
 		Edition:          edition,
 		Level:            req.Level,
+		Topics:           normalizeTopics(req.Topics),
+		QuestionLimit:    questionLimit,
 		DurationMinutes:  duration,
 		StartsAt:         startsAt,
 		EndsAt:           endsAt,
@@ -258,18 +267,20 @@ func (h *Handler) UpdateQuiz(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var patch struct {
-		Title            *string `json:"title"`
-		Edition          *string `json:"edition"`
-		Level            *string `json:"level"`
-		DurationMinutes  *int    `json:"durationMinutes"`
-		StartsAt         *string `json:"startsAt"`
-		EndsAt           *string `json:"endsAt"`
-		MaxScore         *int    `json:"maxScore"`
-		PassMark         *int    `json:"passMark"`
-		ShuffleQuestions *bool   `json:"shuffleQuestions"`
-		ShuffleOptions   *bool   `json:"shuffleOptions"`
-		Status           *string `json:"status"`
-		ResultsPublished *bool   `json:"resultsPublished"`
+		Title            *string   `json:"title"`
+		Edition          *string   `json:"edition"`
+		Level            *string   `json:"level"`
+		Topics           *[]string `json:"topics"`
+		QuestionLimit    *int      `json:"questionLimit"`
+		DurationMinutes  *int      `json:"durationMinutes"`
+		StartsAt         *string   `json:"startsAt"`
+		EndsAt           *string   `json:"endsAt"`
+		MaxScore         *int      `json:"maxScore"`
+		PassMark         *int      `json:"passMark"`
+		ShuffleQuestions *bool     `json:"shuffleQuestions"`
+		ShuffleOptions   *bool     `json:"shuffleOptions"`
+		Status           *string   `json:"status"`
+		ResultsPublished *bool     `json:"resultsPublished"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&patch); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid JSON request body"})
@@ -292,6 +303,16 @@ func (h *Handler) UpdateQuiz(w http.ResponseWriter, r *http.Request) {
 	}
 	if patch.DurationMinutes != nil && *patch.DurationMinutes > 0 {
 		existing.DurationMinutes = *patch.DurationMinutes
+	}
+	if patch.Topics != nil {
+		existing.Topics = normalizeTopics(*patch.Topics)
+	}
+	if patch.QuestionLimit != nil {
+		if *patch.QuestionLimit < 0 {
+			existing.QuestionLimit = 0
+		} else {
+			existing.QuestionLimit = *patch.QuestionLimit
+		}
 	}
 	if patch.StartsAt != nil && strings.TrimSpace(*patch.StartsAt) != "" {
 		parsed, err := parseFlexibleTime(*patch.StartsAt)
@@ -781,7 +802,11 @@ func (h *Handler) StudentLogin(w http.ResponseWriter, r *http.Request) {
 	questionCount := 0
 	if assignedQuiz != nil {
 		qs, _ := h.store.GetQuestionsForQuiz(r.Context(), assignedQuiz.ID, stu.Level)
+		qs = filterQuestionsByTopics(qs, assignedQuiz.Topics)
 		questionCount = len(qs)
+		if assignedQuiz.QuestionLimit > 0 && assignedQuiz.QuestionLimit < questionCount {
+			questionCount = assignedQuiz.QuestionLimit
+		}
 		att, attErr := h.store.GetAttemptByQuizAndStudent(r.Context(), assignedQuiz.ID, stu.ID)
 		if attErr == nil {
 			// Auto-finalize if expired
@@ -911,8 +936,9 @@ func (h *Handler) StartSession(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load questions"})
 		return
 	}
+	questions = filterQuestionsByTopics(questions, qz.Topics)
 	if len(questions) == 0 {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "this quiz has no active questions configured yet"})
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "this quiz has no active questions matching its configured topics yet"})
 		return
 	}
 
@@ -925,6 +951,9 @@ func (h *Handler) StartSession(w http.ResponseWriter, r *http.Request) {
 		rng.Shuffle(len(order), func(i, j int) {
 			order[i], order[j] = order[j], order[i]
 		})
+	}
+	if qz.QuestionLimit > 0 && len(order) > qz.QuestionLimit {
+		order = order[:qz.QuestionLimit]
 	}
 
 	expiresAt := now.Add(time.Duration(qz.DurationMinutes) * time.Minute)
@@ -939,7 +968,7 @@ func (h *Handler) StartSession(w http.ResponseWriter, r *http.Request) {
 		QuestionOrder:  order,
 		StartedAt:      now,
 		ExpiresAt:      expiresAt,
-		TotalQuestions: len(questions),
+		TotalQuestions: len(order),
 		Status:         "in_progress",
 	}
 
@@ -1150,10 +1179,31 @@ func (h *Handler) finalizeAttempt(r *http.Request, qz *Quiz, att *QuizAttempt, e
 	if err != nil {
 		return nil, err
 	}
+	if qz != nil {
+		questions = filterQuestionsByTopics(questions, qz.Topics)
+	}
+
+	// Restrict grading strictly to the questions drawn for this attempt (respects questionLimit)
 	qMap := make(map[string]Question, len(questions))
+	if len(att.QuestionOrder) > 0 {
+		allByID := make(map[string]Question, len(questions))
+		for _, q := range questions {
+			allByID[q.ID] = q
+		}
+		for _, qid := range att.QuestionOrder {
+			if q, ok := allByID[qid]; ok {
+				qMap[q.ID] = q
+			}
+		}
+	}
+	if len(qMap) == 0 {
+		for _, q := range questions {
+			qMap[q.ID] = q
+		}
+	}
+
 	totalPoints := 0
-	for _, q := range questions {
-		qMap[q.ID] = q
+	for _, q := range qMap {
 		pts := q.Points
 		if pts <= 0 {
 			pts = 10
@@ -1193,7 +1243,7 @@ func (h *Handler) finalizeAttempt(r *http.Request, qz *Quiz, att *QuizAttempt, e
 	att.SubmittedAt = &submittedAt
 	att.TimeTakenSeconds = elapsed
 	att.RawCorrect = rawCorrect
-	att.TotalQuestions = len(questions)
+	att.TotalQuestions = len(qMap)
 	att.ScoreOutOf1000 = scoreOutOfMax
 	att.Passed = scoreOutOfMax >= passMark
 	if expired {
@@ -1240,6 +1290,8 @@ func (h *Handler) PublicSchedule(w http.ResponseWriter, r *http.Request) {
 		Title            string    `json:"title"`
 		Edition          string    `json:"edition"`
 		Level            string    `json:"level"`
+		Topics           []string  `json:"topics"`
+		QuestionLimit    int       `json:"questionLimit"`
 		DurationMinutes  int       `json:"durationMinutes"`
 		StartsAt         time.Time `json:"startsAt"`
 		EndsAt           time.Time `json:"endsAt"`
@@ -1259,6 +1311,8 @@ func (h *Handler) PublicSchedule(w http.ResponseWriter, r *http.Request) {
 				Title:            q.Title,
 				Edition:          q.Edition,
 				Level:            q.Level,
+				Topics:           q.Topics,
+				QuestionLimit:    q.QuestionLimit,
 				DurationMinutes:  q.DurationMinutes,
 				StartsAt:         q.StartsAt,
 				EndsAt:           q.EndsAt,
@@ -1308,18 +1362,62 @@ func orderStudentQuestions(questions []Question, order []string) []StudentQuesti
 	seen := make(map[string]bool, len(questions))
 	views := make([]StudentQuestionView, 0, len(questions))
 
-	for _, id := range order {
-		if q, ok := byID[id]; ok && !seen[id] {
-			seen[id] = true
-			views = append(views, toStudentView(q))
+	if len(order) > 0 {
+		for _, id := range order {
+			if q, ok := byID[id]; ok && !seen[id] {
+				seen[id] = true
+				views = append(views, toStudentView(q))
+			}
 		}
+		return views
 	}
+
 	for _, q := range questions {
 		if !seen[q.ID] {
+			seen[q.ID] = true
 			views = append(views, toStudentView(q))
 		}
 	}
 	return views
+}
+
+func normalizeTopics(raw []string) []string {
+	out := make([]string, 0, len(raw))
+	seen := make(map[string]bool)
+	for _, t := range raw {
+		clean := strings.TrimSpace(t)
+		if clean == "" {
+			continue
+		}
+		key := strings.ToLower(clean)
+		if !seen[key] {
+			seen[key] = true
+			out = append(out, clean)
+		}
+	}
+	return out
+}
+
+func filterQuestionsByTopics(questions []Question, topics []string) []Question {
+	if len(topics) == 0 {
+		return questions
+	}
+	allowed := make(map[string]bool, len(topics))
+	for _, t := range topics {
+		if clean := strings.ToLower(strings.TrimSpace(t)); clean != "" {
+			allowed[clean] = true
+		}
+	}
+	if len(allowed) == 0 {
+		return questions
+	}
+	filtered := make([]Question, 0, len(questions))
+	for _, q := range questions {
+		if allowed[strings.ToLower(strings.TrimSpace(q.Topic))] {
+			filtered = append(filtered, q)
+		}
+	}
+	return filtered
 }
 
 func toStudentView(q Question) StudentQuestionView {

@@ -242,3 +242,105 @@ func TestQuizEngineEndToEndFlow(t *testing.T) {
 		t.Fatalf("expected 200 reset attempt, got %d", resetRec.Code)
 	}
 }
+
+func TestQuizTopicsAndQuestionLimit(t *testing.T) {
+	store := NewMemoryStore()
+	h := NewHandler(store, "admin@kingshouselearning.com", "secret123", "test-secret")
+
+	// Create a live Senior quiz restricted to Coding + AI with questionLimit = 2
+	starts := time.Now().UTC().Add(-5 * time.Minute).Format(time.RFC3339)
+	ends := time.Now().UTC().Add(1 * time.Hour).Format(time.RFC3339)
+	quizPayload, _ := json.Marshal(map[string]any{
+		"title":           "Senior Coding & AI Sprint",
+		"level":           "senior",
+		"topics":          []string{"Coding", "AI"},
+		"questionLimit":   2,
+		"durationMinutes": 20,
+		"startsAt":        starts,
+		"endsAt":          ends,
+		"status":          "live",
+	})
+	qRec := httptest.NewRecorder()
+	h.CreateQuiz(qRec, httptest.NewRequest(http.MethodPost, "/api/v1/admin/quizzes", bytes.NewReader(quizPayload)))
+	if qRec.Code != http.StatusCreated {
+		t.Fatalf("expected 201 create quiz, got %d: %s", qRec.Code, qRec.Body.String())
+	}
+
+	// Import 4 questions across 3 topics (2 Coding, 1 AI, 1 Robotics)
+	csvText := strings.Join([]string{
+		"level_scope,topic,prompt,option_a,option_b,option_c,option_d,correct_option,points",
+		"senior,Coding,Q1,A1,B1,C1,D1,A,10",
+		"senior,Coding,Q2,A2,B2,C2,D2,A,10",
+		"senior,AI,Q3,A3,B3,C3,D3,A,10",
+		"senior,Robotics,Q4,A4,B4,C4,D4,A,10",
+	}, "\n")
+	impPayload, _ := json.Marshal(map[string]any{"csv": csvText})
+	impRec := httptest.NewRecorder()
+	h.ImportQuestions(impRec, httptest.NewRequest(http.MethodPost, "/api/v1/admin/questions/import", bytes.NewReader(impPayload)))
+	if impRec.Code != http.StatusCreated {
+		t.Fatalf("import failed: %d", impRec.Code)
+	}
+
+	// Register a Senior student
+	stuBody, _ := json.Marshal(map[string]any{
+		"examCode":   "EV8-SEN-5555",
+		"pinCode":    "654321",
+		"fullName":   "Ibrahim Musa",
+		"schoolName": "Crestview High",
+		"level":      "senior",
+	})
+	stuRec := httptest.NewRecorder()
+	h.CreateStudent(stuRec, httptest.NewRequest(http.MethodPost, "/api/v1/admin/students", bytes.NewReader(stuBody)))
+	if stuRec.Code != http.StatusCreated {
+		t.Fatalf("create student failed: %d", stuRec.Code)
+	}
+
+	// Student login should report questionCount = 2 (capped by questionLimit)
+	lBody, _ := json.Marshal(map[string]string{"examCode": "EV8-SEN-5555", "pin": "654321"})
+	lRec := httptest.NewRecorder()
+	h.StudentLogin(lRec, httptest.NewRequest(http.MethodPost, "/api/v1/quiz/login", bytes.NewReader(lBody)))
+	var lResp struct {
+		Token         string `json:"token"`
+		QuestionCount int    `json:"questionCount"`
+	}
+	_ = json.NewDecoder(lRec.Body).Decode(&lResp)
+	if lResp.QuestionCount != 2 {
+		t.Fatalf("expected questionCount=2 from questionLimit, got %d", lResp.QuestionCount)
+	}
+
+	// Start session should deliver strictly 2 questions, none from Robotics
+	sReq := httptest.NewRequest(http.MethodPost, "/api/v1/quiz/sessions/start", bytes.NewReader([]byte(`{}`)))
+	sReq.Header.Set("Authorization", "Bearer "+lResp.Token)
+	sRec := httptest.NewRecorder()
+	h.StartSession(sRec, sReq)
+	var sResp struct {
+		Attempt   QuizAttempt           `json:"attempt"`
+		Questions []StudentQuestionView `json:"questions"`
+	}
+	_ = json.NewDecoder(sRec.Body).Decode(&sResp)
+	if len(sResp.Questions) != 2 {
+		t.Fatalf("expected 2 questions, got %d", len(sResp.Questions))
+	}
+	answers := map[string]string{}
+	for _, q := range sResp.Questions {
+		if q.Topic == "Robotics" {
+			t.Fatalf("unexpected Robotics question in Coding/AI quiz")
+		}
+		answers[q.ID] = "A"
+	}
+
+	// Submit with both drawn questions correct -> MUST score 1000/1000!
+	subBody, _ := json.Marshal(map[string]any{"answers": answers})
+	subReq := httptest.NewRequest(http.MethodPost, "/api/v1/quiz/sessions/"+sResp.Attempt.ID+"/submit", bytes.NewReader(subBody))
+	subReq.SetPathValue("id", sResp.Attempt.ID)
+	subReq.Header.Set("Authorization", "Bearer "+lResp.Token)
+	subRec := httptest.NewRecorder()
+	h.SubmitSession(subRec, subReq)
+	var subResp struct {
+		Attempt QuizAttempt `json:"attempt"`
+	}
+	_ = json.NewDecoder(subRec.Body).Decode(&subResp)
+	if subResp.Attempt.ScoreOutOf1000 != 1000 || subResp.Attempt.TotalQuestions != 2 {
+		t.Fatalf("expected 1000/1000 across 2 drawn questions, got %d (%d total)", subResp.Attempt.ScoreOutOf1000, subResp.Attempt.TotalQuestions)
+	}
+}

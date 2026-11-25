@@ -8,6 +8,8 @@ export interface Quiz {
   title: string;
   edition: string;
   level: CompetitionLevel;
+  topics?: string[];
+  questionLimit?: number;
   durationMinutes: number;
   startsAt: string;
   endsAt: string;
@@ -198,6 +200,7 @@ export async function apiRequest<T>(
   const res = await fetch(`${base}${path}`, {
     method: options.method || "GET",
     headers,
+    cache: "no-store",
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
   });
   const data = await res.json().catch(() => ({}));

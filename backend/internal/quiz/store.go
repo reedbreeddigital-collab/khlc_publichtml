@@ -91,14 +91,23 @@ func (m *MemoryStore) ListQuizzes(_ context.Context) ([]QuizWithStats, error) {
 
 	out := make([]QuizWithStats, 0, len(m.quizzes))
 	for _, q := range m.quizzes {
+		if q.Topics == nil {
+			q.Topics = make([]string, 0)
+		}
 		stats := QuizWithStats{Quiz: q}
+		matching := make([]Question, 0)
 		for _, ques := range m.questions {
 			if !ques.Active {
 				continue
 			}
 			if ques.QuizID == q.ID || (ques.QuizID == "" && (ques.LevelScope == "shared" || ques.LevelScope == q.Level)) {
-				stats.QuestionCount++
+				matching = append(matching, ques)
 			}
+		}
+		matching = filterQuestionsByTopics(matching, q.Topics)
+		stats.QuestionCount = len(matching)
+		if q.QuestionLimit > 0 && q.QuestionLimit < stats.QuestionCount {
+			stats.QuestionCount = q.QuestionLimit
 		}
 		for _, a := range m.attempts {
 			if a.QuizID == q.ID {
