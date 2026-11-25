@@ -3,15 +3,50 @@ package middleware
 import (
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 )
 
 // CORS wraps an http.Handler to apply Cross-Origin Resource Sharing headers.
+// allowedOrigin may be "*", a single origin, or a comma-separated list of origins.
 func CORS(allowedOrigin string, next http.Handler) http.Handler {
+	origins := make([]string, 0)
+	for _, part := range strings.Split(allowedOrigin, ",") {
+		if trimmed := strings.TrimSpace(part); trimmed != "" {
+			origins = append(origins, trimmed)
+		}
+	}
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
+		reqOrigin := r.Header.Get("Origin")
+		headerOrigin := allowedOrigin
+
+		if len(origins) == 1 && origins[0] == "*" {
+			headerOrigin = "*"
+		} else if reqOrigin != "" {
+			matched := false
+			for _, o := range origins {
+				if o == reqOrigin || o == "*" {
+					headerOrigin = reqOrigin
+					matched = true
+					break
+				}
+			}
+			// In local dev, allow localhost/127.0.0.1 variants when default localhost is configured
+			if !matched && (strings.HasPrefix(reqOrigin, "http://localhost:") || strings.HasPrefix(reqOrigin, "http://127.0.0.1:")) {
+				for _, o := range origins {
+					if strings.HasPrefix(o, "http://localhost:") || strings.HasPrefix(o, "http://127.0.0.1:") {
+						headerOrigin = reqOrigin
+						break
+					}
+				}
+			}
+		}
+
+		w.Header().Set("Access-Control-Allow-Origin", headerOrigin)
+		w.Header().Set("Vary", "Origin")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Student-Token")
 
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)

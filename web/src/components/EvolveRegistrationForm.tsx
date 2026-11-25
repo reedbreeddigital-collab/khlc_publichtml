@@ -14,12 +14,14 @@ import {
   Cpu,
   Layers,
 } from "lucide-react";
+import Link from "next/link";
 import { khlcContact } from "@/data/khlc";
 import {
   sdgThemes,
   type EvolveCategory,
   type EvolvePath,
 } from "@/data/evolve";
+import { getApiBase } from "@/lib/quizApi";
 
 export type RegistrationTrack = "both" | "test" | "project";
 
@@ -95,6 +97,7 @@ export default function EvolveRegistrationForm({
   const [submitting, setSubmitting] = useState(false);
   const [referenceId, setReferenceId] = useState("");
   const [backendSynced, setBackendSynced] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
@@ -205,19 +208,19 @@ export default function EvolveRegistrationForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    setSubmitError("");
+    setBackendSynced(false);
 
-    const generatedRef = `EV8-${Math.floor(1000 + Math.random() * 9000)}`;
-    setReferenceId(generatedRef);
+    let confirmedRef = `EV8-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    // Optional live sync to Go backend when NEXT_PUBLIC_API_URL is configured
-    const apiBase = process.env.NEXT_PUBLIC_API_URL;
+    const apiBase = getApiBase();
     if (apiBase) {
       try {
-        const res = await fetch(`${apiBase.replace(/\/$/, "")}/api/v1/evolve/registrations`, {
+        const res = await fetch(`${apiBase}/api/v1/evolve/registrations`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            referenceId: generatedRef,
+            referenceId: confirmedRef,
             track,
             schoolName,
             schoolLocation,
@@ -242,14 +245,24 @@ export default function EvolveRegistrationForm({
             ndpaConsent: consentChecked,
           }),
         });
-        if (res.ok) {
-          setBackendSynced(true);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setSubmitError(
+            data.error || "Registration validation failed. Please review your fields."
+          );
+          setSubmitting(false);
+          return;
         }
+        if (data?.data?.referenceId) {
+          confirmedRef = data.data.referenceId;
+        }
+        setBackendSynced(true);
       } catch {
-        // Gracefully fall back to WhatsApp / Email handoff on static deploy
+        // Gracefully fall back to WhatsApp / Email handoff if API is unreachable
       }
     }
 
+    setReferenceId(confirmedRef);
     setSubmitting(false);
     setSubmitted(true);
   };
@@ -262,15 +275,22 @@ export default function EvolveRegistrationForm({
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg">
             <CheckCircle2 className="h-7 w-7" />
           </div>
-          <span className="mt-4 inline-block rounded-full bg-[#3b00b3]/10 px-3.5 py-1 text-xs font-extrabold text-[#3b00b3]">
-            Reference ID: {referenceId}
-          </span>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+            <span className="inline-block rounded-full bg-[#3b00b3]/10 px-3.5 py-1 text-xs font-extrabold text-[#3b00b3]">
+              Reference ID: {referenceId}
+            </span>
+            {backendSynced && (
+              <span className="inline-block rounded-full bg-emerald-100 px-3 py-1 text-xs font-extrabold text-emerald-800">
+                ✓ Saved to Kingshouse Database
+              </span>
+            )}
+          </div>
           <h3 className="mt-3 text-2xl font-extrabold text-[#0d002b]">
-            Evolve 8.0 Registration Prepared for {schoolName}!
+            Evolve 8.0 Registration Confirmed for {schoolName}!
           </h3>
           <p className="mt-2 text-xs sm:text-sm text-gray-600">
             {backendSynced
-              ? "Your registration has been recorded on our server. You can also send a copy directly via WhatsApp or Email for instant confirmation from our competition coordinators."
+              ? "Your school registration is securely persisted in our Evolve 8.0 database. Keep your Reference ID to submit your Project Track proposal & 3-minute video, or send a copy via WhatsApp/Email below."
               : "Complete your registration instantly by sending this formatted summary to the Evolve 8.0 Desk via WhatsApp or Email below."}
           </p>
         </div>
@@ -282,6 +302,14 @@ export default function EvolveRegistrationForm({
 
         {/* Action Buttons */}
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          {includeProject && (
+            <Link
+              href={`/evolve/projects?ref=${encodeURIComponent(referenceId)}`}
+              className="inline-flex items-center gap-2 rounded-xl bg-[#100038] px-5 py-3 text-xs sm:text-sm font-extrabold text-[#9dff13] shadow-md transition-all hover:bg-[#3b00b3] hover:text-white"
+            >
+              <span>Submit Project Proposal / Video →</span>
+            </Link>
+          )}
           <a
             href={khlcContact.whatsappUrl(summaryText)}
             target="_blank"
@@ -847,6 +875,12 @@ export default function EvolveRegistrationForm({
           </span>
         </label>
       </div>
+
+      {submitError && (
+        <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-bold text-red-700">
+          {submitError}
+        </div>
+      )}
 
       {/* Submit Row */}
       <div className="mt-6 flex flex-wrap items-center justify-between gap-4">

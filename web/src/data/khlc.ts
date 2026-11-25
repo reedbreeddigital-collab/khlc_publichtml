@@ -336,8 +336,8 @@ export const projectsAndEvents: ProjectEventItem[] = [
     badge: "Flagship Competition",
     title: "Evolve 8.0 ICT Competition",
     summary:
-      "Register your school for the National Online General Test (Primary 4 to SS3) and enter a 5-pupil team in our Coding, AI, or Robotics Project Track, leading to live grand finals in Lagos with ₦500,000, ₦200,000 & ₦100,000 in prizes.",
-    metric: "₦500K / ₦200K / ₦100K Prizes",
+      "Register your school for the National Online General Test (Primary 4 to SS3) and enter a 5-pupil team in our Coding, AI, or Robotics Project Track, leading to live grand finals in Lagos with ₦300,000, ₦200,000 & ₦100,000 in prizes, plus 4th & 5th place consolation prizes.",
+    metric: "₦300K / ₦200K / ₦100K + Consolation",
     image: "/images/evolve-award.webp",
   },
   {
@@ -446,7 +446,7 @@ export const resourceArticles: ResourceArticle[] = [
     image: "/images/evolve-award.webp",
     highlights: [
       "National Online General Test (Primary 4 to SS3) plus Coding, AI & Robotics Project Track",
-      "₦500,000, ₦200,000 & ₦100,000 prizes at live grand finals in Lagos",
+      "₦300,000, ₦200,000 & ₦100,000 prizes plus 4th & 5th place consolation prizes at live grand finals in Lagos",
       "Strong collaboration between school leadership, parents, and industry partners",
     ],
     body: [

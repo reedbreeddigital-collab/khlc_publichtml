@@ -16,6 +16,7 @@ import {
   Download,
 } from "lucide-react";
 import { khlcContact, type EnquiryPathwayId } from "@/data/khlc";
+import { getApiBase } from "@/lib/quizApi";
 
 interface VideoContactSectionProps {
   selectedPathway?: EnquiryPathwayId;
@@ -131,6 +132,10 @@ export default function VideoContactSection({
   const [orgDetail, setOrgDetail] = useState("");
   const [focus, setFocus] = useState(pathwayConfig[0].focusOptions[0]);
   const [message, setMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [backendSynced, setBackendSynced] = useState(false);
+  const [enquiryId, setEnquiryId] = useState("");
+  const [submitError, setSubmitError] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
@@ -176,8 +181,47 @@ export default function VideoContactSection({
       .join("\n");
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitting(true);
+    setSubmitError("");
+    setBackendSynced(false);
+    setEnquiryId("");
+
+    const apiBase = getApiBase();
+    if (apiBase) {
+      try {
+        const res = await fetch(`${apiBase}/api/v1/enquiries`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pathway: activeTab,
+            fullName,
+            phone,
+            email,
+            orgDetail,
+            focus,
+            message,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setSubmitError(
+            data.error || "Please double-check your details and try again."
+          );
+          setSubmitting(false);
+          return;
+        }
+        setBackendSynced(true);
+        if (data?.data?.id) {
+          setEnquiryId(data.data.id);
+        }
+      } catch {
+        // Gracefully allow WhatsApp/Email handoff if offline
+      }
+    }
+
+    setSubmitting(false);
     setSubmitted(true);
   };
 
@@ -393,13 +437,21 @@ export default function VideoContactSection({
                   <CheckCircle2 className="h-6 w-6" />
                 </div>
                 <h4 className="mt-4 text-lg font-extrabold text-[#0d002b]">
-                  Your {currentConfig.label} Request Is Ready!
+                  {backendSynced
+                    ? `Your ${currentConfig.label} Enquiry Is Recorded!`
+                    : `Your ${currentConfig.label} Request Is Ready!`}
                 </h4>
-                <p className="mt-1.5 text-xs sm:text-sm text-gray-600">
+                {backendSynced && enquiryId && (
+                  <span className="mt-2 inline-block rounded-full bg-emerald-100 px-3 py-0.5 font-mono text-[11px] font-extrabold text-emerald-800">
+                    Saved in KHLC Database · Ref: {enquiryId}
+                  </span>
+                )}
+                <p className="mt-2 text-xs sm:text-sm text-gray-600">
                   Thank you,{" "}
-                  <strong className="text-[#0d002b]">{fullName}</strong>. Send
-                  your enquiry directly to our business development team via
-                  WhatsApp or Email for immediate response.
+                  <strong className="text-[#0d002b]">{fullName}</strong>.{" "}
+                  {backendSynced
+                    ? "Our business development team has received your enquiry in the KHLC Admin Console. You can also message us directly via WhatsApp or Email for an instant response."
+                    : "Send your enquiry directly to our business development team via WhatsApp or Email for immediate response."}
                 </p>
 
                 <div className="mt-5 flex flex-col justify-center gap-3 sm:flex-row">
@@ -547,13 +599,20 @@ export default function VideoContactSection({
                   />
                 </div>
 
+                {submitError && (
+                  <div className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-xs font-bold text-red-700">
+                    {submitError}
+                  </div>
+                )}
+
                 <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
                   <button
                     type="submit"
-                    className="inline-flex items-center gap-2 rounded-xl bg-[#3b00b3] px-6 py-3.5 text-xs sm:text-sm font-extrabold text-white shadow-[0_10px_25px_rgba(59,0,179,0.28)] transition-all hover:bg-[#9dff13] hover:text-[#0d002b]"
+                    disabled={submitting}
+                    className="inline-flex items-center gap-2 rounded-xl bg-[#3b00b3] px-6 py-3.5 text-xs sm:text-sm font-extrabold text-white shadow-[0_10px_25px_rgba(59,0,179,0.28)] transition-all hover:bg-[#9dff13] hover:text-[#0d002b] disabled:opacity-50"
                   >
                     <Send className="h-4 w-4" />
-                    <span>Submit Enquiry</span>
+                    <span>{submitting ? "Saving Enquiry..." : "Submit Enquiry"}</span>
                   </button>
 
                   <a

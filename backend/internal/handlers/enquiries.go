@@ -7,6 +7,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // Enquiry represents a partnership, parent/learner, CSR partner, or instructor submission.
@@ -30,14 +32,20 @@ type NewsletterSubscriber struct {
 
 // EnquiryHandler manages KHLC partnership enquiries and newsletter signups.
 type EnquiryHandler struct {
+	pool        *pgxpool.Pool
 	mu          sync.RWMutex
 	enquiries   []Enquiry
 	subscribers []NewsletterSubscriber
 }
 
-// NewEnquiryHandler constructs a new EnquiryHandler with thread-safe in-memory storage.
-func NewEnquiryHandler() *EnquiryHandler {
+// NewEnquiryHandler constructs a new EnquiryHandler backed by Postgres (when pool != nil) or in-memory storage.
+func NewEnquiryHandler(pool ...*pgxpool.Pool) *EnquiryHandler {
+	var p *pgxpool.Pool
+	if len(pool) > 0 {
+		p = pool[0]
+	}
 	return &EnquiryHandler{
+		pool:        p,
 		enquiries:   make([]Enquiry, 0),
 		subscribers: make([]NewsletterSubscriber, 0),
 	}
@@ -90,9 +98,8 @@ func (h *EnquiryHandler) CreateEnquiry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.mu.Lock()
 	entry := Enquiry{
-		ID:        fmt.Sprintf("enq_%d_%d", time.Now().Unix(), len(h.enquiries)+1),
+		ID:        fmt.Sprintf("enq_%d", time.Now().UTC().UnixNano()),
 		Pathway:   req.Pathway,
 		FullName:  req.FullName,
 		Phone:     req.Phone,
@@ -102,8 +109,21 @@ func (h *EnquiryHandler) CreateEnquiry(w http.ResponseWriter, r *http.Request) {
 		Message:   req.Message,
 		CreatedAt: time.Now().UTC(),
 	}
-	h.enquiries = append(h.enquiries, entry)
-	h.mu.Unlock()
+
+	if h.pool != nil {
+		_, err := h.pool.Exec(r.Context(), `
+			INSERT INTO enquiries (id, pathway, full_name, phone, email, org_detail, focus, message, created_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		`, entry.ID, entry.Pathway, entry.FullName, entry.Phone, entry.Email, entry.OrgDetail, entry.Focus, entry.Message, entry.CreatedAt)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to store enquiry"})
+			return
+		}
+	} else {
+		h.mu.Lock()
+		h.enquiries = append([]Enquiry{entry}, h.enquiries...)
+		h.mu.Unlock()
+	}
 
 	writeJSON(w, http.StatusCreated, map[string]any{
 		"message": "Enquiry received successfully",
@@ -113,6 +133,35 @@ func (h *EnquiryHandler) CreateEnquiry(w http.ResponseWriter, r *http.Request) {
 
 // ListEnquiries handles GET /api/v1/enquiries.
 func (h *EnquiryHandler) ListEnquiries(w http.ResponseWriter, r *http.Request) {
+	if h.pool != nil {
+		rows, err := h.pool.Query(r.Context(), `
+			SELECT id, pathway, full_name, phone, email, org_detail, focus, message, created_at
+			FROM enquiries
+			ORDER BY created_at DESC
+			LIMIT 200
+		`)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load enquiries"})
+			return
+		}
+		defer rows.Close()
+
+		result := make([]Enquiry, 0)
+		for rows.Next() {
+			var e Enquiry
+			if err := rows.Scan(&e.ID, &e.Pathway, &e.FullName, &e.Phone, &e.Email, &e.OrgDetail, &e.Focus, &e.Message, &e.CreatedAt); err != nil {
+				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to decode enquiry"})
+				return
+			}
+			result = append(result, e)
+		}
+		writeJSON(w, http.StatusOK, map[string]any{
+			"count": len(result),
+			"data":  result,
+		})
+		return
+	}
+
 	h.mu.RLock()
 	result := make([]Enquiry, len(h.enquiries))
 	copy(result, h.enquiries)
@@ -150,12 +199,66 @@ func (h *EnquiryHandler) SubscribeNewsletter(w http.ResponseWriter, r *http.Requ
 		SubscribedAt: time.Now().UTC(),
 	}
 
-	h.mu.Lock()
-	h.subscribers = append(h.subscribers, sub)
-	h.mu.Unlock()
+	if h.pool != nil {
+		_, err := h.pool.Exec(r.Context(), `
+			INSERT INTO newsletter_subscribers (email, subscribed_at)
+			VALUES ($1, $2)
+			ON CONFLICT (email) DO UPDATE SET subscribed_at = EXCLUDED.subscribed_at
+		`, sub.Email, sub.SubscribedAt)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to save subscription"})
+			return
+		}
+	} else {
+		h.mu.Lock()
+		h.subscribers = append(h.subscribers, sub)
+		h.mu.Unlock()
+	}
 
 	writeJSON(w, http.StatusCreated, map[string]any{
 		"message": "Subscribed successfully",
 		"data":    sub,
+	})
+}
+
+// ListSubscribers handles GET /api/v1/admin/newsletter.
+func (h *EnquiryHandler) ListSubscribers(w http.ResponseWriter, r *http.Request) {
+	if h.pool != nil {
+		rows, err := h.pool.Query(r.Context(), `
+			SELECT email, subscribed_at
+			FROM newsletter_subscribers
+			ORDER BY subscribed_at DESC
+			LIMIT 500
+		`)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to load newsletter subscribers"})
+			return
+		}
+		defer rows.Close()
+
+		out := make([]NewsletterSubscriber, 0)
+		for rows.Next() {
+			var sub NewsletterSubscriber
+			if err := rows.Scan(&sub.Email, &sub.SubscribedAt); err != nil {
+				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to decode subscriber"})
+				return
+			}
+			out = append(out, sub)
+		}
+		writeJSON(w, http.StatusOK, map[string]any{
+			"count": len(out),
+			"data":  out,
+		})
+		return
+	}
+
+	h.mu.RLock()
+	out := make([]NewsletterSubscriber, len(h.subscribers))
+	copy(out, h.subscribers)
+	h.mu.RUnlock()
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"count": len(out),
+		"data":  out,
 	})
 }

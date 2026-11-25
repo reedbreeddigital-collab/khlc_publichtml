@@ -122,9 +122,13 @@ export default function ProjectsEventsSection({
                 </strong>
                 , leading to live grand finals in Lagos with{" "}
                 <strong className="text-[#9dff13]">
-                  ₦500,000, ₦200,000 &amp; ₦100,000
+                  ₦300,000, ₦200,000 &amp; ₦100,000
                 </strong>{" "}
-                in prizes.
+                in prizes, plus{" "}
+                <strong className="text-white">
+                  4th &amp; 5th place consolation prizes
+                </strong>
+                .
               </p>
 
               <div className="mt-6 flex flex-wrap gap-3">

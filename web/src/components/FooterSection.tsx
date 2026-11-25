@@ -16,6 +16,7 @@ import {
   navLinks,
   type EnquiryPathwayId,
 } from "@/data/khlc";
+import { getApiBase } from "@/lib/quizApi";
 
 interface FooterSectionProps {
   onSelectPathway?: (pathway: EnquiryPathwayId, context?: string) => void;
@@ -45,7 +46,9 @@ const riseUp = {
 
 export default function FooterSection({ onSelectPathway }: FooterSectionProps) {
   const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [subscribing, setSubscribing] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
+  const [subscribeError, setSubscribeError] = useState("");
 
   const scrollToTop = () => {
     if (typeof window !== "undefined") {
@@ -53,11 +56,33 @@ export default function FooterSection({ onSelectPathway }: FooterSectionProps) {
     }
   };
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newsletterEmail.trim()) {
+    const cleaned = newsletterEmail.trim();
+    if (!cleaned) return;
+    setSubscribing(true);
+    setSubscribeError("");
+    const apiBase = getApiBase();
+    try {
+      if (apiBase) {
+        const res = await fetch(`${apiBase}/api/v1/newsletter`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: cleaned }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.error || "Unable to save subscription.");
+        }
+      }
       setSubscribed(true);
       setNewsletterEmail("");
+    } catch (err) {
+      setSubscribeError(
+        err instanceof Error ? err.message : "Could not subscribe right now."
+      );
+    } finally {
+      setSubscribing(false);
     }
   };
 
@@ -117,29 +142,38 @@ export default function FooterSection({ onSelectPathway }: FooterSectionProps) {
                 </span>
               </div>
             ) : (
-              <form
-                onSubmit={handleSubscribe}
-                className="flex w-full max-w-md items-center rounded-xl bg-white p-1.5 shadow-lg"
-              >
-                <div className="flex flex-1 items-center gap-2.5 pl-3.5 text-gray-400">
-                  <Mail className="h-4 w-4 shrink-0" />
-                  <input
-                    type="email"
-                    required
-                    value={newsletterEmail}
-                    onChange={(e) => setNewsletterEmail(e.target.value)}
-                    placeholder="Enter your school or personal email"
-                    className="w-full bg-transparent text-xs sm:text-sm text-[#0d002b] placeholder-gray-400 focus:outline-none"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  aria-label="Subscribe for updates"
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#3b00b3] text-white transition-all hover:bg-[#9dff13] hover:text-[#0d002b]"
+              <div className="w-full max-w-md">
+                <form
+                  onSubmit={handleSubscribe}
+                  className="flex w-full items-center rounded-xl bg-white p-1.5 shadow-lg"
                 >
-                  <Send className="h-4 w-4" />
-                </button>
-              </form>
+                  <div className="flex flex-1 items-center gap-2.5 pl-3.5 text-gray-400">
+                    <Mail className="h-4 w-4 shrink-0" />
+                    <input
+                      type="email"
+                      required
+                      disabled={subscribing}
+                      value={newsletterEmail}
+                      onChange={(e) => setNewsletterEmail(e.target.value)}
+                      placeholder="Enter your school or personal email"
+                      className="w-full bg-transparent text-xs sm:text-sm text-[#0d002b] placeholder-gray-400 focus:outline-none"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={subscribing}
+                    aria-label="Subscribe for updates"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#3b00b3] text-white transition-all hover:bg-[#9dff13] hover:text-[#0d002b] disabled:opacity-50"
+                  >
+                    <Send className="h-4 w-4" />
+                  </button>
+                </form>
+                {subscribeError && (
+                  <p className="mt-2 text-xs font-bold text-[#9dff13]">
+                    {subscribeError}
+                  </p>
+                )}
+              </div>
             )}
           </div>
         </motion.div>

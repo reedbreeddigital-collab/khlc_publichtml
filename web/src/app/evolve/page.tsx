@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -38,6 +38,21 @@ import {
   judgingCriteria,
   evolveTimeline,
 } from "@/data/evolve";
+import { getApiBase } from "@/lib/quizApi";
+
+interface LiveScheduleItem {
+  id: string;
+  title: string;
+  level: string;
+  durationMinutes: number;
+  startsAt: string;
+  endsAt: string;
+  passMark: number;
+  maxScore: number;
+  status: string;
+  resultsPublished: boolean;
+  questionCount: number;
+}
 
 type GuidelineTab = "rules" | "proposal" | "video" | "judging";
 
@@ -99,6 +114,38 @@ export default function EvolvePage() {
   const [selectedTrack, setSelectedTrack] = useState<
     RegistrationTrack | undefined
   >(undefined);
+  const [liveSchedule, setLiveSchedule] = useState<LiveScheduleItem[]>([]);
+
+  useEffect(() => {
+    const apiBase = getApiBase();
+    if (!apiBase) return;
+    fetch(`${apiBase}/api/v1/evolve/schedule`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && Array.isArray(data.levels)) {
+          setLiveSchedule(data.levels);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const liveWindowSummary = React.useMemo(() => {
+    if (liveSchedule.length === 0) return phase1Details.testWindow;
+    const starts = liveSchedule
+      .map((s) => new Date(s.startsAt).getTime())
+      .filter((t) => !Number.isNaN(t));
+    const ends = liveSchedule
+      .map((s) => new Date(s.endsAt).getTime())
+      .filter((t) => !Number.isNaN(t));
+    if (starts.length === 0 || ends.length === 0) return phase1Details.testWindow;
+    const fmt = (ms: number) =>
+      new Date(ms).toLocaleDateString("en-NG", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+    return `${fmt(Math.min(...starts))} – ${fmt(Math.max(...ends))}`;
+  }, [liveSchedule]);
 
   const jumpToRegister = (track?: RegistrationTrack, theme?: string) => {
     if (track) setSelectedTrack(track);
@@ -157,15 +204,33 @@ export default function EvolvePage() {
                   {item.label}
                 </a>
               ))}
+              <Link
+                href="/evolve/quiz"
+                className="text-sm font-bold text-[#38e0ff] transition-colors hover:text-[#9dff13]"
+              >
+                Online Test
+              </Link>
+              <Link
+                href="/evolve/projects"
+                className="text-sm font-bold text-white/90 transition-colors hover:text-[#9dff13]"
+              >
+                Submit Project
+              </Link>
+              <Link
+                href="/evolve/results"
+                className="text-sm font-bold text-white/90 transition-colors hover:text-[#9dff13]"
+              >
+                Results
+              </Link>
             </nav>
 
             <div className="hidden lg:flex items-center gap-3">
               <Link
-                href="/"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-3.5 py-2 text-xs font-bold text-white/90 hover:border-[#38e0ff] hover:text-[#38e0ff] transition-colors"
+                href="/evolve/quiz"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[#38e0ff]/40 bg-[#38e0ff]/10 px-3.5 py-2 text-xs font-extrabold text-[#38e0ff] hover:bg-[#38e0ff] hover:text-[#0d002b] transition-colors"
               >
-                <ArrowLeft className="h-3.5 w-3.5" />
-                <span>Main Site</span>
+                <Laptop className="h-3.5 w-3.5" />
+                <span>Take Test</span>
               </Link>
               <a
                 href="#register"
@@ -209,6 +274,24 @@ export default function EvolvePage() {
                       {item.label}
                     </a>
                   ))}
+                  <Link
+                    href="/evolve/quiz"
+                    className="rounded-lg px-2 py-2 text-sm font-bold text-[#9dff13]"
+                  >
+                    Take Phase 1 Online Test →
+                  </Link>
+                  <Link
+                    href="/evolve/projects"
+                    className="rounded-lg px-2 py-2 text-sm font-bold text-white/90"
+                  >
+                    Submit Project Proposal &amp; Video
+                  </Link>
+                  <Link
+                    href="/evolve/results"
+                    className="rounded-lg px-2 py-2 text-sm font-bold text-white/90"
+                  >
+                    Official National Results
+                  </Link>
                   <Link
                     href="/"
                     className="rounded-lg px-2 py-2 text-sm font-medium text-[#38e0ff]"
@@ -274,9 +357,13 @@ export default function EvolvePage() {
                 </strong>
                 , leading to live grand finals in Lagos with{" "}
                 <strong className="text-[#9dff13]">
-                  ₦500,000, ₦200,000 &amp; ₦100,000
+                  ₦300,000, ₦200,000 &amp; ₦100,000
                 </strong>{" "}
-                in prizes.
+                in prizes, plus{" "}
+                <strong className="text-white">
+                  4th &amp; 5th place consolation prizes
+                </strong>
+                .
               </motion.p>
 
               <motion.div
@@ -292,12 +379,29 @@ export default function EvolvePage() {
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </a>
 
-                <a
-                  href="#guidelines"
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/25 bg-white/5 px-6 py-3.5 text-sm font-bold text-white hover:border-[#38e0ff] hover:bg-[#38e0ff]/10 transition-colors"
+                <Link
+                  href="/evolve/quiz"
+                  className="inline-flex items-center gap-2 rounded-xl border border-[#38e0ff]/40 bg-[#38e0ff]/15 px-5 py-3.5 text-sm font-extrabold text-[#38e0ff] hover:bg-[#38e0ff] hover:text-[#0d002b] transition-colors"
                 >
-                  <span>Read Project Guidelines</span>
-                </a>
+                  <Laptop className="h-4 w-4" />
+                  <span>Student Exam Login</span>
+                </Link>
+
+                <Link
+                  href="/evolve/projects"
+                  className="inline-flex items-center gap-2 rounded-xl border border-white/25 bg-white/5 px-5 py-3.5 text-sm font-bold text-white hover:border-[#38e0ff] hover:text-[#38e0ff] transition-colors"
+                >
+                  <Cpu className="h-4 w-4" />
+                  <span>Submit Project</span>
+                </Link>
+
+                <Link
+                  href="/evolve/results"
+                  className="inline-flex items-center gap-2 rounded-xl border border-white/25 bg-white/5 px-5 py-3.5 text-sm font-bold text-white hover:border-[#9dff13] hover:text-[#9dff13] transition-colors"
+                >
+                  <Trophy className="h-4 w-4" />
+                  <span>National Results</span>
+                </Link>
               </motion.div>
 
               <motion.div
@@ -315,9 +419,38 @@ export default function EvolvePage() {
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   <Calendar className="h-3.5 w-3.5 text-[#9dff13]" />
-                  Test Window: 21 – 28 Nov 2026
+                  Test Window: {liveWindowSummary}
                 </span>
               </motion.div>
+
+              {liveSchedule.length > 0 && (
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  {liveSchedule.map((item) => (
+                    <Link
+                      key={item.id}
+                      href="/evolve/quiz"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] font-bold text-white/90 hover:border-[#9dff13]"
+                    >
+                      <span
+                        className={`h-2 w-2 rounded-full ${
+                          item.status === "live"
+                            ? "bg-[#9dff13] animate-pulse"
+                            : item.status === "scheduled"
+                            ? "bg-[#38e0ff]"
+                            : "bg-gray-400"
+                        }`}
+                      />
+                      <span className="capitalize">{item.level}:</span>
+                      <span className="uppercase text-[#9dff13]">
+                        {item.status}
+                      </span>
+                      <span className="text-white/60">
+                        ({item.durationMinutes}m)
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </motion.div>
 
             {/* Right Visual Showcase + Prize Strip */}
@@ -336,7 +469,7 @@ export default function EvolvePage() {
                     className="h-full w-full object-cover object-center transition-transform duration-700 hover:scale-105"
                   />
                 </div>
-                <div className="grid grid-cols-3 divide-x divide-white/10 bg-[#140047] p-4 sm:p-5 text-center">
+                <div className="grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-white/10 bg-[#140047] p-4 sm:p-5 text-center">
                   {evolveMeta.prizes.map((p, idx) => (
                     <motion.div
                       key={p.place}
@@ -347,15 +480,15 @@ export default function EvolvePage() {
                         duration: 0.5,
                         ease: [0.22, 1, 0.36, 1],
                       }}
-                      className="px-2"
+                      className="px-2 py-2 sm:py-0"
                     >
                       <p className="text-[10px] font-bold uppercase tracking-wider text-[#38e0ff]">
                         {p.place}
                       </p>
-                      <p className="mt-1 text-lg sm:text-2xl font-extrabold text-[#9dff13]">
+                      <p className="mt-1 text-base sm:text-xl font-extrabold text-[#9dff13]">
                         {p.amount}
                       </p>
-                      <p className="mt-0.5 text-[10px] text-white/70 hidden sm:block">
+                      <p className="mt-0.5 text-[10px] text-white/70">
                         {p.note}
                       </p>
                     </motion.div>

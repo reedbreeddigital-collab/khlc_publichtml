@@ -75,6 +75,74 @@ func TestSubscribeNewsletterValidation(t *testing.T) {
 	if goodRec.Code != http.StatusCreated {
 		t.Fatalf("expected status 201 for valid email, got %d", goodRec.Code)
 	}
+
+	listSubRec := httptest.NewRecorder()
+	h.ListSubscribers(listSubRec, httptest.NewRequest(http.MethodGet, "/api/v1/admin/newsletter", nil))
+	if listSubRec.Code != http.StatusOK {
+		t.Fatalf("expected status 200 listing subscribers, got %d", listSubRec.Code)
+	}
+}
+
+func TestProjectSubmissionAndJudging(t *testing.T) {
+	h := NewProjectHandler()
+
+	submitBody := []byte(`{
+		"referenceId": "EV8-7788",
+		"schoolName": "Gracefield Royal Academy",
+		"category": "Secondary",
+		"projectPath": "Robotics",
+		"projectTheme": "Theme 2: Traffic Control & Safe Roads (SDG 11)",
+		"supervisingTeacher": "Mr. Emeka Nwosu",
+		"teamMembers": [{"name":"Ada","className":"SS1"},{"name":"Tobi","className":"SS2"}],
+		"problemStatement": "School gate traffic causes daily congestion.",
+		"solutionSummary": "An Arduino smart traffic light with ultrasonic sensors.",
+		"howItWorks": "Ultrasonic sensors detect pedestrian waiting queues.",
+		"expectedImpact": "Safer crossings for 800 pupils.",
+		"milestones": "Week 1 design, Week 2 build, Week 3 test."
+	}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/evolve/projects", bytes.NewReader(submitBody))
+	rec := httptest.NewRecorder()
+	h.SubmitProject(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201 submit project, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var created struct {
+		Data ProjectSubmission `json:"data"`
+	}
+	_ = json.NewDecoder(rec.Body).Decode(&created)
+	if created.Data.ID == "" || created.Data.WordCount == 0 {
+		t.Fatalf("expected project id and word count, got %+v", created.Data)
+	}
+
+	// Lookup by reference ID
+	lookupReq := httptest.NewRequest(http.MethodGet, "/api/v1/evolve/projects/lookup?ref=EV8-7788", nil)
+	lookupRec := httptest.NewRecorder()
+	h.LookupProject(lookupRec, lookupReq)
+	if lookupRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 lookup, got %d: %s", lookupRec.Code, lookupRec.Body.String())
+	}
+
+	// Admin review & 100-mark rubric judging
+	reviewBody := []byte(`{
+		"instructorFeedback": "Strong prototype design! Add a pedestrian buzzer in your demo video.",
+		"status": "finalist",
+		"judgingScores": {"technical":23,"problem":14,"creativity":13,"impact":14,"teamwork":9,"planning":9,"video":9}
+	}`)
+	revReq := httptest.NewRequest(http.MethodPatch, "/api/v1/admin/projects/"+created.Data.ID, bytes.NewReader(reviewBody))
+	revReq.SetPathValue("id", created.Data.ID)
+	revRec := httptest.NewRecorder()
+	h.ReviewProject(revRec, revReq)
+	if revRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 review, got %d: %s", revRec.Code, revRec.Body.String())
+	}
+	var reviewed struct {
+		Data ProjectSubmission `json:"data"`
+	}
+	_ = json.NewDecoder(revRec.Body).Decode(&reviewed)
+	if reviewed.Data.TotalMarks != 91 || reviewed.Data.Status != "finalist" {
+		t.Fatalf("expected 91 marks and finalist status, got %d (%s)", reviewed.Data.TotalMarks, reviewed.Data.Status)
+	}
 }
 
 func TestEvolveRegistration(t *testing.T) {

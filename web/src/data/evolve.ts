@@ -15,9 +15,10 @@ export const evolveMeta = {
   host: "Kingshouse Learning Centre",
   venue: "Lagos",
   prizes: [
-    { place: "1st Place", amount: "₦500,000", note: "Grand Innovation Prize" },
+    { place: "1st Place", amount: "₦300,000", note: "Grand Innovation Prize" },
     { place: "2nd Place", amount: "₦200,000", note: "Runner-Up Prize" },
     { place: "3rd Place", amount: "₦100,000", note: "Third Place Prize" },
+    { place: "4th & 5th Place", amount: "Consolation", note: "Consolation Prizes" },
   ],
 };
 
