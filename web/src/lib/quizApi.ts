@@ -84,6 +84,8 @@ export interface Student {
   level: CompetitionLevel;
   className: string;
   registrationRef?: string;
+  phase2VideoUrl?: string;
+  phase2VideoUpdatedAt?: string;
   createdAt?: string;
   latestAttempt?: QuizAttempt | null;
 }

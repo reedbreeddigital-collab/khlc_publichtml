@@ -31,3 +31,28 @@ body {
   background-color: #ffffff;
   color: #0d002b;
 }
+
+@media print {
+  body:has(#evolve-registration-slip) * {
+    visibility: hidden !important;
+  }
+  body:has(#evolve-registration-slip) #evolve-registration-slip,
+  body:has(#evolve-registration-slip) #evolve-registration-slip * {
+    visibility: visible !important;
+    color: #000000 !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+  }
+  body:has(#evolve-registration-slip) #evolve-registration-slip {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 20px !important;
+    border: 2px solid #000000 !important;
+  }
+  body:has(#evolve-registration-slip) .no-print {
+    display: none !important;
+  }
+}

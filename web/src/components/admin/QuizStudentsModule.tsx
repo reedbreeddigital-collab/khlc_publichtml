@@ -14,6 +14,8 @@ import {
   X,
   ClipboardList,
   Clock,
+  Video,
+  ExternalLink,
 } from "lucide-react";
 import {
   type Student,
@@ -281,6 +283,7 @@ export default function QuizStudentsModule({
                   <th className="py-3 px-4">Level</th>
                   <th className="py-3 px-4">Attempt Status</th>
                   <th className="py-3 px-4">Score / Time</th>
+                  <th className="py-3 px-4">Phase 2 Video</th>
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
@@ -358,6 +361,24 @@ export default function QuizStudentsModule({
                           </p>
                         ) : (
                           <span className="text-gray-400">—</span>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        {s.phase2VideoUrl ? (
+                          <a
+                            href={s.phase2VideoUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-[11px] font-extrabold text-emerald-800 hover:bg-emerald-100"
+                          >
+                            <Video className="h-3 w-3" />
+                            <span>Watch Video</span>
+                            <ExternalLink className="h-2.5 w-2.5" />
+                          </a>
+                        ) : (
+                          <span className="text-[11px] text-gray-400">
+                            Pending
+                          </span>
                         )}
                       </td>
                       <td className="py-3.5 px-4 text-right">

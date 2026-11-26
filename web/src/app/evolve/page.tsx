@@ -214,7 +214,7 @@ export default function EvolvePage() {
                 href="/evolve/projects"
                 className="text-sm font-bold text-white/90 transition-colors hover:text-[#9dff13]"
               >
-                Submit Project
+                Teacher / Phase 2 Portal
               </Link>
               <Link
                 href="/evolve/results"
@@ -391,8 +391,8 @@ export default function EvolvePage() {
                   href="/evolve/projects"
                   className="inline-flex items-center gap-2 rounded-xl border border-white/25 bg-white/5 px-5 py-3.5 text-sm font-bold text-white hover:border-[#38e0ff] hover:text-[#38e0ff] transition-colors"
                 >
-                  <Cpu className="h-4 w-4" />
-                  <span>Submit Project</span>
+                  <Video className="h-4 w-4" />
+                  <span>Teacher / Phase 2 Videos</span>
                 </Link>
 
                 <Link

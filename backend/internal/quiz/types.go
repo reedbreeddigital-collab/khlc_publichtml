@@ -61,19 +61,21 @@ type StudentQuestionView struct {
 	Points  int    `json:"points"`
 }
 
-// Student represents a registered Evolve pupil with exam credentials.
+// Student represents a registered Evolve pupil with exam credentials and optional Phase 2 video link.
 type Student struct {
-	ID              string    `json:"id"`
-	ExamCode        string    `json:"examCode"`
-	PinCode         string    `json:"pinCode,omitempty"` // returned only to authenticated admins for printable slips
-	PinHash         string    `json:"-"`
-	FullName        string    `json:"fullName"`
-	SchoolName      string    `json:"schoolName"`
-	SchoolLocation  string    `json:"schoolLocation"`
-	Level           string    `json:"level"` // junior | intermediate | senior
-	ClassName       string    `json:"className"`
-	RegistrationRef string    `json:"registrationRef,omitempty"`
-	CreatedAt       time.Time `json:"createdAt"`
+	ID                   string     `json:"id"`
+	ExamCode             string     `json:"examCode"`
+	PinCode              string     `json:"pinCode,omitempty"` // returned only to authenticated admins/registrars for printable slips
+	PinHash              string     `json:"-"`
+	FullName             string     `json:"fullName"`
+	SchoolName           string     `json:"schoolName"`
+	SchoolLocation       string     `json:"schoolLocation"`
+	Level                string     `json:"level"` // junior | intermediate | senior
+	ClassName            string     `json:"className"`
+	RegistrationRef      string     `json:"registrationRef,omitempty"`
+	Phase2VideoURL       string     `json:"phase2VideoUrl,omitempty"`
+	Phase2VideoUpdatedAt *time.Time `json:"phase2VideoUpdatedAt,omitempty"`
+	CreatedAt            time.Time  `json:"createdAt"`
 }
 
 // StudentPublicProfile omits credentials for student-facing responses.

@@ -181,9 +181,14 @@ func Migrate(ctx context.Context, unpooledURL, fallbackPooledURL string) error {
 			level TEXT NOT NULL,
 			class_name TEXT NOT NULL DEFAULT '',
 			registration_ref TEXT NOT NULL DEFAULT '',
+			phase2_video_url TEXT NOT NULL DEFAULT '',
+			phase2_video_updated_at TIMESTAMPTZ,
 			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 		)`,
+		`ALTER TABLE students ADD COLUMN IF NOT EXISTS phase2_video_url TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE students ADD COLUMN IF NOT EXISTS phase2_video_updated_at TIMESTAMPTZ`,
 		`CREATE INDEX IF NOT EXISTS idx_students_level ON students (level)`,
+		`CREATE INDEX IF NOT EXISTS idx_students_registration_ref ON students (registration_ref)`,
 		`CREATE TABLE IF NOT EXISTS quiz_attempts (
 			id TEXT PRIMARY KEY,
 			quiz_id TEXT NOT NULL REFERENCES quizzes(id) ON DELETE CASCADE,

@@ -45,6 +45,7 @@ export default function AdminEvolveEntriesPage() {
                 <th className="py-3 px-3">Track</th>
                 <th className="py-3 px-3">Path &amp; Theme</th>
                 <th className="py-3 px-3">Coordinator</th>
+                <th className="py-3 px-3 text-right">Registrar Portal</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -69,6 +70,16 @@ export default function AdminEvolveEntriesPage() {
                   <td className="py-3 px-3 text-xs">
                     <p className="font-bold">{reg.coordinatorName}</p>
                     <p className="text-gray-500">{reg.phone}</p>
+                  </td>
+                  <td className="py-3 px-3 text-right">
+                    <Link
+                      href={`/evolve/projects?ref=${encodeURIComponent(
+                        reg.referenceId
+                      )}`}
+                      className="inline-flex items-center gap-1 rounded-lg border border-[#3b00b3]/25 bg-[#faf6ff] px-3 py-1.5 text-xs font-extrabold text-[#3b00b3] hover:bg-[#3b00b3] hover:text-white transition-colors"
+                    >
+                      <span>Phase 2 Videos ↗</span>
+                    </Link>
                   </td>
                 </tr>
               ))}

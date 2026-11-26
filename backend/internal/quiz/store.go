@@ -36,9 +36,11 @@ type Store interface {
 
 	// Students
 	ListStudents(ctx context.Context, level string) ([]StudentWithAttempt, error)
+	ListStudentsByRegistrationRef(ctx context.Context, ref string) ([]StudentWithAttempt, error)
 	GetStudentByID(ctx context.Context, id string) (*Student, error)
 	GetStudentByExamCode(ctx context.Context, examCode string) (*Student, error)
 	CreateStudent(ctx context.Context, s Student) (*Student, error)
+	UpdateStudentPhase2Video(ctx context.Context, id, registrationRef, videoURL string) (*Student, error)
 	DeleteStudent(ctx context.Context, id string) error
 	ImportRegisteredPupils(ctx context.Context) ([]Student, error)
 
@@ -300,6 +302,55 @@ func (m *MemoryStore) ListStudents(_ context.Context, level string) ([]StudentWi
 		return out[i].CreatedAt.After(out[j].CreatedAt)
 	})
 	return out, nil
+}
+
+func (m *MemoryStore) ListStudentsByRegistrationRef(_ context.Context, ref string) ([]StudentWithAttempt, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	normRef := strings.ToUpper(strings.TrimSpace(ref))
+	out := make([]StudentWithAttempt, 0)
+	for _, s := range m.students {
+		if normRef == "" || !strings.EqualFold(strings.TrimSpace(s.RegistrationRef), normRef) {
+			continue
+		}
+		var latest *QuizAttempt
+		for _, a := range m.attempts {
+			if a.StudentID == s.ID {
+				if latest == nil || a.StartedAt.After(latest.StartedAt) {
+					cp := a
+					latest = &cp
+				}
+			}
+		}
+		out = append(out, StudentWithAttempt{Student: s, LatestAttempt: latest})
+	}
+	sort.Slice(out, func(i, j int) bool {
+		return out[i].CreatedAt.Before(out[j].CreatedAt)
+	})
+	return out, nil
+}
+
+func (m *MemoryStore) UpdateStudentPhase2Video(_ context.Context, id, registrationRef, videoURL string) (*Student, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	s, ok := m.students[id]
+	if !ok {
+		return nil, ErrNotFound
+	}
+	if registrationRef != "" && !strings.EqualFold(strings.TrimSpace(s.RegistrationRef), strings.TrimSpace(registrationRef)) {
+		return nil, ErrNotFound
+	}
+	s.Phase2VideoURL = strings.TrimSpace(videoURL)
+	if s.Phase2VideoURL != "" {
+		now := time.Now().UTC()
+		s.Phase2VideoUpdatedAt = &now
+	} else {
+		s.Phase2VideoUpdatedAt = nil
+	}
+	m.students[id] = s
+	cp := s
+	return &cp, nil
 }
 
 func (m *MemoryStore) GetStudentByID(_ context.Context, id string) (*Student, error) {

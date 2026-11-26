@@ -14,12 +14,52 @@ import {
   Award,
   AlertTriangle,
   MessageSquare,
+  Users,
+  ExternalLink,
+  Copy,
+  Check,
+  Plus,
+  Building2,
+  Save,
+  LogOut,
+  Share2,
 } from "lucide-react";
 import KhlcLogo from "@/components/KhlcLogo";
 import FooterSection from "@/components/FooterSection";
 import { sdgThemes, type EvolveCategory, type EvolvePath } from "@/data/evolve";
-import { apiRequest } from "@/lib/quizApi";
+import {
+  apiRequest,
+  levelLabel,
+  type Student,
+  type CompetitionLevel,
+} from "@/lib/quizApi";
 import type { ProjectSubmission } from "@/components/admin/ProjectSubmissionsModule";
+
+interface RegistrarSchoolRegistration {
+  id: string;
+  referenceId: string;
+  track: string;
+  schoolName: string;
+  schoolLocation: string;
+  schoolAddress?: string;
+  schoolType?: string;
+  coordinatorName: string;
+  coordinatorRole?: string;
+  phone: string;
+  email: string;
+  projectCategory?: string;
+  projectPath?: string;
+  projectTheme?: string;
+  supervisingTeacher?: string;
+  projectTeam?: { name: string; className: string; videoUrl?: string }[];
+  createdAt?: string;
+}
+
+interface RegistrarDashboardResponse {
+  registration: RegistrarSchoolRegistration;
+  matchingRegistrations: RegistrarSchoolRegistration[];
+  students: Student[];
+}
 
 interface LookupResponse {
   submission: ProjectSubmission | null;
@@ -34,17 +74,39 @@ interface LookupResponse {
   } | null;
 }
 
+const REGISTRAR_SESSION_KEY = "khlc_registrar_ref_v1";
+
 function countWords(text: string): number {
   const trimmed = text.trim();
   if (!trimmed) return 0;
   return trimmed.split(/\s+/).length;
 }
 
+function detectSocialPlatform(url: string): string {
+  const lower = url.trim().toLowerCase();
+  if (!lower) return "";
+  if (lower.includes("instagram.com") || lower.includes("instagr.am"))
+    return "Instagram";
+  if (lower.includes("tiktok.com")) return "TikTok";
+  if (lower.includes("youtube.com") || lower.includes("youtu.be"))
+    return "YouTube";
+  if (lower.includes("facebook.com") || lower.includes("fb.watch"))
+    return "Facebook";
+  if (lower.includes("twitter.com") || lower.includes("x.com"))
+    return "X / Twitter";
+  if (lower.includes("linkedin.com")) return "LinkedIn";
+  if (lower.includes("drive.google.com")) return "Google Drive";
+  if (lower.includes("vimeo.com")) return "Vimeo";
+  return "Social / Video Link";
+}
+
 export default function EvolveProjectsPortalPage() {
-  const [activeTab, setActiveTab] = useState<"submit" | "status">("submit");
+  const [activeTab, setActiveTab] = useState<
+    "students" | "submit" | "status"
+  >("students");
 
   // Lookup state
-  const [lookupRef, setLookupRef] = useState("");
+  const [lookupInput, setLookupInput] = useState("");
   const [lookingUp, setLookingUp] = useState(false);
   const [lookupError, setLookupError] = useState("");
   const [lookupResult, setLookupResult] = useState<ProjectSubmission | null>(
@@ -52,7 +114,32 @@ export default function EvolveProjectsPortalPage() {
   );
   const [prefillNotice, setPrefillNotice] = useState("");
 
-  // Form fields
+  // Registrar Dashboard state
+  const [activeReg, setActiveReg] =
+    useState<RegistrarSchoolRegistration | null>(null);
+  const [matchingRegs, setMatchingRegs] = useState<
+    RegistrarSchoolRegistration[]
+  >([]);
+  const [registeredStudents, setRegisteredStudents] = useState<Student[]>([]);
+  const [videoDrafts, setVideoDrafts] = useState<Record<string, string>>({});
+  const [savingStudentId, setSavingStudentId] = useState<string>("");
+  const [savingAllVideos, setSavingAllVideos] = useState(false);
+  const [savedStudentNotice, setSavedStudentNotice] = useState<
+    Record<string, string>
+  >({});
+  const [studentVideoError, setStudentVideoError] = useState("");
+  const [copiedId, setCopiedId] = useState("");
+
+  // Add Student in Registrar Dashboard state
+  const [addStudentOpen, setAddStudentOpen] = useState(false);
+  const [newStudentName, setNewStudentName] = useState("");
+  const [newStudentLevel, setNewStudentLevel] =
+    useState<CompetitionLevel>("junior");
+  const [newStudentClass, setNewStudentClass] = useState("");
+  const [newStudentVideo, setNewStudentVideo] = useState("");
+  const [addingStudent, setAddingStudent] = useState(false);
+
+  // Proposal Form fields
   const [referenceId, setReferenceId] = useState("");
   const [schoolName, setSchoolName] = useState("");
   const [category, setCategory] = useState<EvolveCategory>("Primary");
@@ -79,6 +166,18 @@ export default function EvolveProjectsPortalPage() {
   const [submitError, setSubmitError] = useState("");
   const [savedSubmission, setSavedSubmission] =
     useState<ProjectSubmission | null>(null);
+
+  const copyText = async (id: string, text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(id);
+      window.setTimeout(() => {
+        setCopiedId((prev) => (prev === id ? "" : prev));
+      }, 2000);
+    } catch {
+      // ignore
+    }
+  };
 
   const limits = useMemo(
     () =>
@@ -121,95 +220,284 @@ export default function EvolveProjectsPortalPage() {
     counts.milestones;
   const overLimit = totalWords > limits.total + 25;
 
-  const applyLookup = async (refCode: string) => {
-    const clean = refCode.trim().toUpperCase();
+  const populateDraftsFromStudents = (students: Student[]) => {
+    const drafts: Record<string, string> = {};
+    for (const s of students) {
+      drafts[s.id] = s.phase2VideoUrl || "";
+    }
+    setVideoDrafts(drafts);
+  };
+
+  const applyLookup = async (rawQuery: string, specificRef?: string) => {
+    const clean = (specificRef || rawQuery).trim();
     if (!clean) return;
     setLookingUp(true);
     setLookupError("");
     setPrefillNotice("");
+    setStudentVideoError("");
+
     try {
-      const res = await apiRequest<LookupResponse>(
-        `/api/v1/evolve/projects/lookup?ref=${encodeURIComponent(clean)}`
+      const isRefFormat = /^EV8-/i.test(clean);
+      const dashQuery = specificRef
+        ? `ref=${encodeURIComponent(specificRef.toUpperCase())}`
+        : isRefFormat
+        ? `ref=${encodeURIComponent(clean.toUpperCase())}`
+        : `query=${encodeURIComponent(clean)}`;
+
+      const dashRes = await apiRequest<RegistrarDashboardResponse>(
+        `/api/v1/evolve/registrar/dashboard?${dashQuery}`
       );
-      if (res.submission) {
-        const s = res.submission;
-        setLookupResult(s);
-        setReferenceId(s.referenceId);
-        setSchoolName(s.schoolName);
-        if (s.category === "Primary" || s.category === "Secondary") {
-          setCategory(s.category);
-        }
-        if (
-          s.projectPath === "Coding" ||
-          s.projectPath === "AI" ||
-          s.projectPath === "Robotics"
-        ) {
-          setProjectPath(s.projectPath);
-        }
-        if (s.projectTheme) setProjectTheme(s.projectTheme);
-        if (s.supervisingTeacher) setSupervisingTeacher(s.supervisingTeacher);
-        if (s.teamMembers && s.teamMembers.length > 0) {
-          const padded = [...s.teamMembers];
-          while (padded.length < 5) padded.push({ name: "", className: "" });
-          setTeamMembers(padded.slice(0, 5));
-        }
-        setProblemStatement(s.problemStatement || "");
-        setSolutionSummary(s.solutionSummary || "");
-        setHowItWorks(s.howItWorks || "");
-        setExpectedImpact(s.expectedImpact || "");
-        setMilestones(s.milestones || "");
-        setVideoUrl(s.videoUrl || "");
-        setPrefillNotice(
-          `Loaded existing Project Track submission for ${s.schoolName} (${s.referenceId}). You can update your proposal or add your 3-minute video link below.`
-        );
-      } else if (res.registration) {
-        const reg = res.registration;
-        setLookupResult(null);
-        setReferenceId(reg.referenceId);
-        setSchoolName(reg.schoolName);
-        if (reg.category === "Primary" || reg.category === "Secondary") {
-          setCategory(reg.category);
-        }
-        if (
-          reg.projectPath === "Coding" ||
-          reg.projectPath === "AI" ||
-          reg.projectPath === "Robotics"
-        ) {
-          setProjectPath(reg.projectPath);
-        }
-        if (reg.projectTheme) setProjectTheme(reg.projectTheme);
-        if (reg.supervisingTeacher)
-          setSupervisingTeacher(reg.supervisingTeacher);
-        if (reg.teamMembers && reg.teamMembers.length > 0) {
-          const padded = [...reg.teamMembers];
-          while (padded.length < 5) padded.push({ name: "", className: "" });
-          setTeamMembers(padded.slice(0, 5));
-        }
-        setPrefillNotice(
-          `Prefilled team details from Evolve 8.0 Registration ${reg.referenceId} (${reg.schoolName}).`
-        );
+
+      const reg = dashRes.registration;
+      setActiveReg(reg);
+      setMatchingRegs(dashRes.matchingRegistrations || [reg]);
+      setRegisteredStudents(dashRes.students || []);
+      populateDraftsFromStudents(dashRes.students || []);
+
+      try {
+        window.sessionStorage.setItem(REGISTRAR_SESSION_KEY, reg.referenceId);
+      } catch {
+        // ignore
       }
+
+      // Sync proposal form fields from registration
+      setReferenceId(reg.referenceId);
+      setSchoolName(reg.schoolName);
+      if (
+        reg.projectCategory === "Primary" ||
+        reg.projectCategory === "Secondary"
+      ) {
+        setCategory(reg.projectCategory);
+      }
+      if (
+        reg.projectPath === "Coding" ||
+        reg.projectPath === "AI" ||
+        reg.projectPath === "Robotics"
+      ) {
+        setProjectPath(reg.projectPath);
+      }
+      if (reg.projectTheme) setProjectTheme(reg.projectTheme);
+      if (reg.supervisingTeacher)
+        setSupervisingTeacher(reg.supervisingTeacher);
+      if (reg.projectTeam && reg.projectTeam.length > 0) {
+        const padded = reg.projectTeam.map((m) => ({
+          name: m.name,
+          className: m.className,
+        }));
+        while (padded.length < 5) padded.push({ name: "", className: "" });
+        setTeamMembers(padded.slice(0, 5));
+      }
+
+      // Also check existing project proposal submission for this referenceId
+      try {
+        const projRes = await apiRequest<LookupResponse>(
+          `/api/v1/evolve/projects/lookup?ref=${encodeURIComponent(
+            reg.referenceId
+          )}`
+        );
+        if (projRes.submission) {
+          const s = projRes.submission;
+          setLookupResult(s);
+          setProblemStatement(s.problemStatement || "");
+          setSolutionSummary(s.solutionSummary || "");
+          setHowItWorks(s.howItWorks || "");
+          setExpectedImpact(s.expectedImpact || "");
+          setMilestones(s.milestones || "");
+          setVideoUrl(s.videoUrl || "");
+        } else {
+          setLookupResult(null);
+        }
+      } catch {
+        setLookupResult(null);
+      }
+
+      setPrefillNotice(
+        `Loaded Teacher / Registrar Dashboard for ${reg.schoolName} (${
+          reg.referenceId
+        }) — ${(dashRes.students || []).length} registered student(s).`
+      );
     } catch (err) {
+      // Fallback: check if there's a standalone project submission by ref
+      try {
+        const projRes = await apiRequest<LookupResponse>(
+          `/api/v1/evolve/projects/lookup?ref=${encodeURIComponent(
+            clean.toUpperCase()
+          )}`
+        );
+        if (projRes.submission) {
+          const s = projRes.submission;
+          setLookupResult(s);
+          setReferenceId(s.referenceId);
+          setSchoolName(s.schoolName);
+          setProblemStatement(s.problemStatement || "");
+          setSolutionSummary(s.solutionSummary || "");
+          setHowItWorks(s.howItWorks || "");
+          setExpectedImpact(s.expectedImpact || "");
+          setMilestones(s.milestones || "");
+          setVideoUrl(s.videoUrl || "");
+          setPrefillNotice(
+            `Loaded Project Track submission for ${s.schoolName} (${s.referenceId}).`
+          );
+          return;
+        }
+      } catch {
+        // ignore fallback error
+      }
+      setActiveReg(null);
+      setRegisteredStudents([]);
       setLookupResult(null);
       setLookupError(
-        err instanceof Error ? err.message : "Reference ID not found"
+        err instanceof Error
+          ? err.message
+          : "No registration found for that Reference ID or coordinator email"
       );
     } finally {
       setLookingUp(false);
     }
   };
 
-  // Auto-read ?ref=EV8-XXXX if linked from registration confirmation slip
+  // Auto-read ?ref=EV8-XXXX or session storage on mount
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     const ref = params.get("ref");
     if (ref) {
-      setLookupRef(ref.toUpperCase());
+      setLookupInput(ref.toUpperCase());
       setReferenceId(ref.toUpperCase());
       void applyLookup(ref);
+      return;
+    }
+    try {
+      const savedRef = window.sessionStorage.getItem(REGISTRAR_SESSION_KEY);
+      if (savedRef) {
+        setLookupInput(savedRef);
+        void applyLookup(savedRef);
+      }
+    } catch {
+      // ignore
     }
   }, []);
+
+  const handleSignOutRegistrar = () => {
+    setActiveReg(null);
+    setMatchingRegs([]);
+    setRegisteredStudents([]);
+    setVideoDrafts({});
+    setLookupInput("");
+    setPrefillNotice("");
+    setLookupError("");
+    try {
+      window.sessionStorage.removeItem(REGISTRAR_SESSION_KEY);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleSaveStudentVideo = async (student: Student) => {
+    if (!activeReg) return;
+    const draftUrl = (videoDrafts[student.id] ?? "").trim();
+    setSavingStudentId(student.id);
+    setStudentVideoError("");
+    try {
+      const res = await apiRequest<{ data: Student; message: string }>(
+        `/api/v1/evolve/registrar/students/${encodeURIComponent(
+          student.id
+        )}/video`,
+        {
+          method: "PATCH",
+          body: {
+            referenceId: activeReg.referenceId,
+            videoUrl: draftUrl,
+          },
+        }
+      );
+      setRegisteredStudents((prev) =>
+        prev.map((s) =>
+          s.id === student.id
+            ? {
+                ...s,
+                phase2VideoUrl: res.data.phase2VideoUrl,
+                phase2VideoUpdatedAt: res.data.phase2VideoUpdatedAt,
+              }
+            : s
+        )
+      );
+      setSavedStudentNotice((prev) => ({
+        ...prev,
+        [student.id]: draftUrl ? "Video Link Saved ✓" : "Cleared",
+      }));
+      window.setTimeout(() => {
+        setSavedStudentNotice((prev) => {
+          const next = { ...prev };
+          delete next[student.id];
+          return next;
+        });
+      }, 3000);
+    } catch (err) {
+      setStudentVideoError(
+        err instanceof Error
+          ? err.message
+          : `Failed to save video link for ${student.fullName}`
+      );
+    } finally {
+      setSavingStudentId("");
+    }
+  };
+
+  const handleSaveAllStudentVideos = async () => {
+    if (!activeReg || registeredStudents.length === 0) return;
+    setSavingAllVideos(true);
+    setStudentVideoError("");
+    try {
+      for (const stu of registeredStudents) {
+        const draft = (videoDrafts[stu.id] ?? "").trim();
+        const current = (stu.phase2VideoUrl ?? "").trim();
+        if (draft !== current) {
+          await handleSaveStudentVideo(stu);
+        }
+      }
+    } finally {
+      setSavingAllVideos(false);
+    }
+  };
+
+  const handleAddStudent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeReg || !newStudentName.trim()) return;
+    setAddingStudent(true);
+    setStudentVideoError("");
+    try {
+      const res = await apiRequest<{ data: Student }>(
+        "/api/v1/evolve/registrar/students",
+        {
+          method: "POST",
+          body: {
+            referenceId: activeReg.referenceId,
+            fullName: newStudentName.trim(),
+            level: newStudentLevel,
+            className: newStudentClass.trim(),
+            videoUrl: newStudentVideo.trim(),
+          },
+        }
+      );
+      const created = res.data;
+      setRegisteredStudents((prev) => [...prev, created]);
+      setVideoDrafts((prev) => ({
+        ...prev,
+        [created.id]: created.phase2VideoUrl || "",
+      }));
+      setNewStudentName("");
+      setNewStudentClass("");
+      setNewStudentVideo("");
+      setAddStudentOpen(false);
+    } catch (err) {
+      setStudentVideoError(
+        err instanceof Error ? err.message : "Failed to add student"
+      );
+    } finally {
+      setAddingStudent(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -248,6 +536,14 @@ export default function EvolveProjectsPortalPage() {
     }
   };
 
+  const uploadedVideosCount = registeredStudents.filter(
+    (s) => s.phase2VideoUrl && s.phase2VideoUrl.trim() !== ""
+  ).length;
+
+  const hasUnsavedVideoChanges = registeredStudents.some(
+    (s) => (videoDrafts[s.id] ?? "").trim() !== (s.phase2VideoUrl ?? "").trim()
+  );
+
   return (
     <main className="min-h-screen bg-[#f4f3fa] text-[#0d002b] flex flex-col">
       {/* Header & Hero */}
@@ -258,7 +554,7 @@ export default function EvolveProjectsPortalPage() {
               <KhlcLogo className="h-9 w-auto" variant="dark" />
               <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-[#9dff13]/15 px-3 py-1 text-[11px] font-extrabold text-[#9dff13]">
                 <Cpu className="h-3.5 w-3.5" />
-                PROJECT TRACK PORTAL
+                TEACHER &amp; REGISTRAR DASHBOARD
               </span>
             </Link>
             <div className="flex items-center gap-2">
@@ -285,38 +581,42 @@ export default function EvolveProjectsPortalPage() {
           </div>
         </header>
 
-        <section className="mx-auto max-w-5xl px-4 py-12 sm:px-6 text-center">
+        <section className="mx-auto max-w-5xl px-4 py-10 sm:px-6 text-center">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-[#9dff13]/30 bg-white/5 px-3.5 py-1.5 text-[11px] font-extrabold uppercase tracking-wider text-[#9dff13]">
             <Sparkles className="h-3.5 w-3.5" />
-            Phase 2 · Coding, AI &amp; Robotics Submissions
+            Teacher / Registrar Portal · Phase 2 Student Videos &amp; Proposals
           </span>
           <h1 className="mt-4 text-3xl sm:text-4xl font-extrabold">
-            Submit Your <span className="text-[#9dff13]">Project Proposal</span>{" "}
-            &amp; <span className="text-[#38e0ff]">3-Minute Video</span>
+            Teacher &amp; Registrar{" "}
+            <span className="text-[#9dff13]">Phase 2 Video</span> Dashboard
           </h1>
           <p className="mx-auto mt-3 max-w-2xl text-xs sm:text-sm text-white/75">
-            Enter your school&apos;s Evolve 8.0 Registration Reference ID (e.g.,{" "}
-            <strong className="font-mono text-[#9dff13]">EV8-1234</strong>) to
-            submit your 6-section proposal, attach your 3-minute project demo
-            video link, and check instructor feedback.
+            Enter your school&apos;s Registration Reference ID (e.g.,{" "}
+            <strong className="font-mono text-[#9dff13]">EV8-1234</strong>) or
+            your registered coordinator email/phone to view all students
+            registered under you and upload their{" "}
+            <strong className="text-white">
+              Phase 2 social media video links
+            </strong>{" "}
+            anytime.
           </p>
 
-          {/* Reference ID Lookup Bar */}
+          {/* Reference ID / Coordinator Email Lookup Bar */}
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              void applyLookup(lookupRef);
+              void applyLookup(lookupInput);
             }}
-            className="mx-auto mt-6 flex max-w-lg flex-col sm:flex-row gap-2"
+            className="mx-auto mt-6 flex max-w-xl flex-col sm:flex-row gap-2"
           >
             <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                value={lookupRef}
-                onChange={(e) => setLookupRef(e.target.value.toUpperCase())}
-                placeholder="Enter Registration Ref (e.g. EV8-1234)"
-                className="w-full rounded-xl bg-white py-3 pl-10 pr-4 font-mono text-xs sm:text-sm font-extrabold uppercase text-[#0d002b] placeholder:font-sans placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-[#9dff13]"
+                value={lookupInput}
+                onChange={(e) => setLookupInput(e.target.value)}
+                placeholder="Enter Reference ID (e.g. EV8-1234) or Coordinator Email"
+                className="w-full rounded-xl bg-white py-3 pl-10 pr-4 text-xs sm:text-sm font-bold text-[#0d002b] placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-[#9dff13]"
               />
             </div>
             <button
@@ -324,7 +624,7 @@ export default function EvolveProjectsPortalPage() {
               disabled={lookingUp}
               className="rounded-xl bg-[#9dff13] px-5 py-3 text-xs sm:text-sm font-extrabold text-[#0d002b] hover:bg-[#38e0ff] transition-colors disabled:opacity-50"
             >
-              {lookingUp ? "Searching..." : "Load / Check Status"}
+              {lookingUp ? "Loading..." : "Open Registrar Dashboard"}
             </button>
           </form>
 
@@ -335,40 +635,155 @@ export default function EvolveProjectsPortalPage() {
           )}
           {lookupError && (
             <p className="mx-auto mt-3 max-w-xl rounded-xl bg-amber-500/20 border border-amber-400/30 px-4 py-2 text-xs font-bold text-amber-200">
-              {lookupError} — you can still enter your details manually below.
+              {lookupError}
             </p>
           )}
         </section>
       </div>
 
       {/* Main Portal */}
-      <section className="mx-auto w-full max-w-4xl flex-1 px-4 py-10 sm:px-6 space-y-6">
-        {/* Tabs */}
-        <div className="inline-flex gap-2 rounded-2xl border border-gray-100 bg-white p-1.5 shadow-sm">
-          <button
-            type="button"
-            onClick={() => setActiveTab("submit")}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-extrabold transition-all ${
-              activeTab === "submit"
-                ? "bg-[#3b00b3] text-white shadow-sm"
-                : "text-[#0d002b] hover:bg-[#faf6ff]"
-            }`}
-          >
-            <FileText className="h-4 w-4" />
-            <span>Submit / Update Proposal &amp; Video</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("status")}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-extrabold transition-all ${
-              activeTab === "status"
-                ? "bg-[#3b00b3] text-white shadow-sm"
-                : "text-[#0d002b] hover:bg-[#faf6ff]"
-            }`}
-          >
-            <Award className="h-4 w-4" />
-            <span>Feedback &amp; Judging Status</span>
-          </button>
+      <section className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6 space-y-6">
+        {/* Multi-registration switcher if coordinator email has multiple registrations */}
+        {matchingRegs.length > 1 && activeReg && (
+          <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-gray-200 bg-white p-3.5 shadow-sm">
+            <span className="text-xs font-extrabold text-[#0d002b]">
+              Your School Registrations ({matchingRegs.length}):
+            </span>
+            {matchingRegs.map((reg) => {
+              const isCurrent = reg.referenceId === activeReg.referenceId;
+              return (
+                <button
+                  key={reg.referenceId}
+                  type="button"
+                  onClick={() => void applyLookup(reg.referenceId, reg.referenceId)}
+                  className={`rounded-xl px-3 py-1.5 text-xs font-extrabold transition-colors ${
+                    isCurrent
+                      ? "bg-[#3b00b3] text-white"
+                      : "bg-[#faf9ff] text-[#0d002b] hover:bg-[#3b00b3]/10"
+                  }`}
+                >
+                  {reg.referenceId} · {reg.schoolName}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Active School Header Strip */}
+        {activeReg && (
+          <div className="rounded-3xl border border-[#3b00b3]/15 bg-white p-5 sm:p-6 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="flex items-start gap-3.5">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#100038] text-[#9dff13]">
+                  <Building2 className="h-6 w-6" />
+                </span>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-[#3b00b3]/10 px-3 py-0.5 font-mono text-xs font-extrabold text-[#3b00b3]">
+                      Ref: {activeReg.referenceId}
+                    </span>
+                    <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-extrabold text-emerald-800">
+                      {uploadedVideosCount} / {registeredStudents.length} Student
+                      Videos Uploaded
+                    </span>
+                  </div>
+                  <h2 className="mt-1.5 text-xl font-extrabold text-[#0d002b]">
+                    {activeReg.schoolName}
+                  </h2>
+                  <p className="text-xs text-gray-500">
+                    Registrar / Coordinator:{" "}
+                    <strong className="text-[#0d002b]">
+                      {activeReg.coordinatorName}
+                    </strong>
+                    {activeReg.coordinatorRole
+                      ? ` (${activeReg.coordinatorRole})`
+                      : ""}{" "}
+                    · {activeReg.schoolLocation}
+                    {activeReg.email ? ` · ${activeReg.email}` : ""}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleSignOutRegistrar}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs font-bold text-gray-600 hover:border-red-300 hover:text-red-600 transition-colors"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                <span>Switch School</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Navigation Tabs */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="inline-flex flex-wrap gap-1.5 rounded-2xl border border-gray-100 bg-white p-1.5 shadow-sm">
+            <button
+              type="button"
+              onClick={() => setActiveTab("students")}
+              className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-extrabold transition-all ${
+                activeTab === "students"
+                  ? "bg-[#3b00b3] text-white shadow-sm"
+                  : "text-[#0d002b] hover:bg-[#faf6ff]"
+              }`}
+            >
+              <Users className="h-4 w-4" />
+              <span>
+                Student Phase 2 Videos ({registeredStudents.length})
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("submit")}
+              className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-extrabold transition-all ${
+                activeTab === "submit"
+                  ? "bg-[#3b00b3] text-white shadow-sm"
+                  : "text-[#0d002b] hover:bg-[#faf6ff]"
+              }`}
+            >
+              <FileText className="h-4 w-4" />
+              <span>Team Project Proposal &amp; Video</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("status")}
+              className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-extrabold transition-all ${
+                activeTab === "status"
+                  ? "bg-[#3b00b3] text-white shadow-sm"
+                  : "text-[#0d002b] hover:bg-[#faf6ff]"
+              }`}
+            >
+              <Award className="h-4 w-4" />
+              <span>Feedback &amp; Judging Status</span>
+            </button>
+          </div>
+
+          {activeTab === "students" && activeReg && (
+            <div className="flex flex-wrap items-center gap-2">
+              {hasUnsavedVideoChanges && (
+                <button
+                  type="button"
+                  onClick={() => void handleSaveAllStudentVideos()}
+                  disabled={savingAllVideos}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-extrabold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  <Save className="h-3.5 w-3.5" />
+                  <span>
+                    {savingAllVideos ? "Saving All..." : "Save All Video Links"}
+                  </span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setAddStudentOpen((prev) => !prev)}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-[#100038] px-4 py-2.5 text-xs font-extrabold text-[#9dff13] hover:bg-[#3b00b3] hover:text-white transition-colors"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span>Add Student to Roster</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Saved Confirmation Banner */}
@@ -398,6 +813,328 @@ export default function EvolveProjectsPortalPage() {
                 </p>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* TAB 1: STUDENT PHASE 2 VIDEOS (TEACHER / REGISTRAR MINI DASHBOARD) */}
+        {activeTab === "students" && (
+          <div className="space-y-4">
+            {studentVideoError && (
+              <div className="flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-bold text-red-700">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{studentVideoError}</span>
+              </div>
+            )}
+
+            {/* Add Student Drawer */}
+            {addStudentOpen && activeReg && (
+              <form
+                onSubmit={handleAddStudent}
+                className="rounded-3xl border-2 border-[#3b00b3]/20 bg-white p-5 sm:p-6 shadow-sm space-y-4"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-extrabold text-[#0d002b]">
+                      Add Student Under {activeReg.schoolName} (
+                      {activeReg.referenceId})
+                    </h3>
+                    <p className="text-xs text-gray-500">
+                      An Exam ID and 6-digit PIN will be generated
+                      automatically, and you can attach their Phase 2 video link
+                      now or later.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold text-[#0d002b]">
+                      Student Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={newStudentName}
+                      onChange={(e) => setNewStudentName(e.target.value)}
+                      placeholder="e.g., Adewale Ogunleye"
+                      className="mt-1 w-full rounded-xl border border-gray-200 bg-[#faf9ff] px-3.5 py-2 text-xs focus:border-[#3b00b3] focus:bg-white focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-[#0d002b]">
+                      Level *
+                    </label>
+                    <select
+                      value={newStudentLevel}
+                      onChange={(e) =>
+                        setNewStudentLevel(e.target.value as CompetitionLevel)
+                      }
+                      className="mt-1 w-full rounded-xl border border-gray-200 bg-[#faf9ff] px-3 py-2 text-xs font-bold"
+                    >
+                      <option value="junior">Junior (Primary 4–6)</option>
+                      <option value="intermediate">
+                        Intermediate (JSS 1–3)
+                      </option>
+                      <option value="senior">Senior (SS 1–3)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-[#0d002b]">
+                      Class
+                    </label>
+                    <input
+                      type="text"
+                      value={newStudentClass}
+                      onChange={(e) => setNewStudentClass(e.target.value)}
+                      placeholder="e.g., JSS 2"
+                      className="mt-1 w-full rounded-xl border border-gray-200 bg-[#faf9ff] px-3.5 py-2 text-xs focus:border-[#3b00b3] focus:bg-white focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#0d002b]">
+                    Phase 2 Social Media Video Link (Optional now)
+                  </label>
+                  <input
+                    type="url"
+                    value={newStudentVideo}
+                    onChange={(e) => setNewStudentVideo(e.target.value)}
+                    placeholder="https://www.instagram.com/reel/... or https://www.tiktok.com/... or https://youtu.be/..."
+                    className="mt-1 w-full rounded-xl border border-gray-200 bg-[#faf9ff] px-3.5 py-2 text-xs focus:border-[#3b00b3] focus:bg-white focus:outline-none"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAddStudentOpen(false)}
+                    className="rounded-xl border border-gray-200 px-4 py-2 text-xs font-bold text-gray-600"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={addingStudent}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#3b00b3] px-5 py-2 text-xs font-extrabold text-white hover:bg-[#9dff13] hover:text-[#0d002b] disabled:opacity-50"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>
+                      {addingStudent ? "Adding..." : "Add Student"}
+                    </span>
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {!activeReg ? (
+              <div className="rounded-3xl border border-gray-100 bg-white p-10 text-center shadow-sm">
+                <Share2 className="mx-auto h-11 w-11 text-[#3b00b3]/40" />
+                <h3 className="mt-3 text-base font-extrabold text-[#0d002b]">
+                  Sign In to Your Teacher / Registrar Dashboard
+                </h3>
+                <p className="mx-auto mt-1.5 max-w-lg text-xs text-gray-500 leading-relaxed">
+                  Enter your school&apos;s{" "}
+                  <strong>Registration Reference ID</strong> (from your
+                  registration slip or confirmation email) or your{" "}
+                  <strong>Coordinator Email Address</strong> in the lookup bar
+                  above to load your registered students and attach their Phase
+                  2 social media video links.
+                </p>
+              </div>
+            ) : registeredStudents.length === 0 ? (
+              <div className="rounded-3xl border border-gray-100 bg-white p-10 text-center shadow-sm">
+                <Users className="mx-auto h-10 w-10 text-gray-300" />
+                <p className="mt-3 text-sm font-extrabold text-[#0d002b]">
+                  No students listed under {activeReg.referenceId} yet
+                </p>
+                <p className="mt-1 text-xs text-gray-500">
+                  Click <strong>&ldquo;Add Student to Roster&rdquo;</strong>{" "}
+                  above to register a student under your school and upload their
+                  Phase 2 video link.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3.5">
+                {registeredStudents.map((stu, idx) => {
+                  const draftVal = videoDrafts[stu.id] ?? "";
+                  const savedVal = stu.phase2VideoUrl ?? "";
+                  const isDirty = draftVal.trim() !== savedVal.trim();
+                  const platform = detectSocialPlatform(draftVal || savedVal);
+                  const isSaving = savingStudentId === stu.id;
+                  const notice = savedStudentNotice[stu.id];
+                  const att = stu.latestAttempt;
+
+                  return (
+                    <div
+                      key={stu.id}
+                      className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:border-[#3b00b3]/30"
+                    >
+                      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                        <div className="flex items-start gap-3">
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#faf6ff] font-mono text-xs font-extrabold text-[#3b00b3]">
+                            {idx + 1}
+                          </span>
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h3 className="text-sm sm:text-base font-extrabold text-[#0d002b]">
+                                {stu.fullName}
+                              </h3>
+                              <span className="rounded-full bg-[#100038] px-2.5 py-0.5 text-[10px] font-extrabold uppercase text-[#9dff13]">
+                                {levelLabel(stu.level)}
+                              </span>
+                              {stu.className && (
+                                <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-[10px] font-bold text-gray-700">
+                                  {stu.className}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Exam ID, PIN, and Phase 1 Test Status */}
+                            <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600">
+                              <span className="font-mono">
+                                Exam ID:{" "}
+                                <strong className="text-[#3b00b3]">
+                                  {stu.examCode}
+                                </strong>
+                              </span>
+                              {stu.pinCode && (
+                                <span className="font-mono">
+                                  PIN:{" "}
+                                  <strong className="text-[#0d002b]">
+                                    {stu.pinCode}
+                                  </strong>
+                                </span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  copyText(
+                                    stu.id,
+                                    `${stu.fullName} | Exam ID: ${
+                                      stu.examCode
+                                    } | PIN: ${stu.pinCode || ""}`
+                                  )
+                                }
+                                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#3b00b3] hover:underline"
+                              >
+                                {copiedId === stu.id ? (
+                                  <>
+                                    <Check className="h-3 w-3" />
+                                    <span>Copied Login</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="h-3 w-3" />
+                                    <span>Copy Login</span>
+                                  </>
+                                )}
+                              </button>
+
+                              {att ? (
+                                <span
+                                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-extrabold ${
+                                    att.status === "in_progress"
+                                      ? "bg-blue-50 text-blue-700"
+                                      : att.passed
+                                      ? "bg-emerald-50 text-emerald-700"
+                                      : "bg-amber-50 text-amber-800"
+                                  }`}
+                                >
+                                  Phase 1 Test:{" "}
+                                  {att.status === "in_progress"
+                                    ? "In Progress"
+                                    : `${att.scoreOutOf1000} / 1,000 (${
+                                        att.passed ? "Passed" : "Submitted"
+                                      })`}
+                                </span>
+                              ) : (
+                                <span className="text-[11px] text-gray-400">
+                                  Phase 1 Test: Not taken yet
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Current Video Status Badge */}
+                        <div className="flex items-center gap-2">
+                          {savedVal ? (
+                            <a
+                              href={savedVal}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-extrabold text-emerald-800 hover:bg-emerald-100 transition-colors"
+                            >
+                              <Video className="h-3.5 w-3.5" />
+                              <span>
+                                Watch {platform || "Phase 2"} Video
+                              </span>
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-[11px] font-bold text-amber-800">
+                              <Video className="h-3 w-3" />
+                              <span>Phase 2 Video Pending</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Phase 2 Social Media Video Link Input Row */}
+                      <div className="mt-4 border-t border-gray-100 pt-3.5">
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+                          <label className="text-[11px] font-extrabold uppercase tracking-wider text-[#3b00b3]">
+                            Phase 2 Video · Social Media Link (Instagram,
+                            TikTok, YouTube, Facebook, X, or Drive)
+                          </label>
+                          {notice && (
+                            <span className="text-xs font-extrabold text-emerald-700">
+                              {notice}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex flex-col gap-2 sm:flex-row">
+                          <div className="relative flex-1">
+                            <input
+                              type="url"
+                              value={draftVal}
+                              onChange={(e) =>
+                                setVideoDrafts((prev) => ({
+                                  ...prev,
+                                  [stu.id]: e.target.value,
+                                }))
+                              }
+                              placeholder={`Paste ${stu.fullName}'s Phase 2 social media video link (https://...)`}
+                              className="w-full rounded-xl border border-gray-200 bg-[#faf9ff] px-3.5 py-2.5 text-xs sm:text-sm text-[#0d002b] focus:border-[#3b00b3] focus:bg-white focus:outline-none"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => void handleSaveStudentVideo(stu)}
+                            disabled={isSaving || (!isDirty && !draftVal)}
+                            className={`inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-extrabold transition-colors disabled:opacity-50 ${
+                              isDirty
+                                ? "bg-[#3b00b3] text-white hover:bg-[#9dff13] hover:text-[#0d002b]"
+                                : "border border-gray-200 bg-white text-[#0d002b] hover:border-[#3b00b3]"
+                            }`}
+                          >
+                            <Save className="h-3.5 w-3.5" />
+                            <span>
+                              {isSaving
+                                ? "Saving..."
+                                : savedVal && !isDirty
+                                ? "Update Video Link"
+                                : "Save Video Link"}
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
@@ -476,7 +1213,7 @@ export default function EvolveProjectsPortalPage() {
               </div>
             )}
           </div>
-        ) : (
+        ) : activeTab === "submit" ? (
           <form
             onSubmit={handleSubmit}
             className="rounded-3xl border border-gray-100 bg-white p-6 sm:p-8 shadow-sm space-y-6"
@@ -753,7 +1490,7 @@ export default function EvolveProjectsPortalPage() {
               </button>
             </div>
           </form>
-        )}
+        ) : null}
       </section>
 
       <FooterSection />

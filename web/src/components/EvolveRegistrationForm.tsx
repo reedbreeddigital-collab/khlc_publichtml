@@ -2,10 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import {
-  CheckCircle2,
   Send,
-  MessageCircle,
-  Mail,
   Plus,
   Trash2,
   Printer,
@@ -15,7 +12,6 @@ import {
   Layers,
   Copy,
   Check,
-  KeyRound,
   Laptop,
 } from "lucide-react";
 import Link from "next/link";
@@ -109,6 +105,7 @@ export default function EvolveRegistrationForm({
   // Submission state
   const [submitting, setSubmitting] = useState(false);
   const [referenceId, setReferenceId] = useState("");
+  const [submittedAt, setSubmittedAt] = useState("");
   const [backendSynced, setBackendSynced] = useState(false);
   const [generatedStudents, setGeneratedStudents] = useState<
     GeneratedStudentCredential[]
@@ -187,66 +184,6 @@ export default function EvolveRegistrationForm({
       ? "Phase 1: National Online General Test"
       : "Phase 2: Project Track (Coding, AI or Robotics)";
 
-  const buildSummaryText = (refCode: string) => {
-    const lines = [
-      `EVOLVE 8.0 REGISTRATION — Ref: ${refCode}`,
-      `Track: ${trackLabel}`,
-      `School: ${schoolName} (${schoolType})`,
-      `Location: ${schoolLocation}${schoolAddress ? ` — ${schoolAddress}` : ""}`,
-      `Coordinator / Instructor: ${coordinatorName} (${coordinatorRole})`,
-      `Phone: ${phone} | Email: ${email}`,
-    ];
-
-    if (includeTest) {
-      lines.push(`--- Phase 1 Online Test (${devicePreference}) ---`);
-      if (generatedStudents.length > 0) {
-        generatedStudents.forEach((s, idx) => {
-          lines.push(
-            `  ${idx + 1}. ${s.fullName} [${s.level.toUpperCase()}${
-              s.className ? ` · ${s.className}` : ""
-            }] — Exam ID: ${s.examCode} | PIN: ${s.pinCode}`
-          );
-        });
-      } else {
-        const validPupils = pupils.filter((p) => p.name.trim() !== "");
-        if (validPupils.length > 0) {
-          validPupils.forEach((p, idx) => {
-            lines.push(
-              `  ${idx + 1}. ${p.name} — ${p.level}${p.className ? ` (${p.className})` : ""}`
-            );
-          });
-        } else {
-          lines.push("  Pupil roster to be finalized before 14 Nov 2026.");
-        }
-      }
-    }
-
-    if (includeProject) {
-      const validMembers = teamMembers.filter((m) => m.name.trim() !== "");
-      lines.push(
-        `--- Project Track (${projectCategory} | ${projectPath} | ${projectTheme}) ---`
-      );
-      if (supervisingTeacher.trim()) {
-        lines.push(`Supervising Teacher: ${supervisingTeacher}`);
-      }
-      if (validMembers.length > 0) {
-        validMembers.forEach((m, idx) => {
-          lines.push(
-            `  Member ${idx + 1}: ${m.name}${m.className ? ` (${m.className})` : ""}`
-          );
-        });
-      } else {
-        lines.push("  Team of 5 names to be confirmed with proposal.");
-      }
-      if (projectIdea.trim()) {
-        lines.push(`Initial Concept: ${projectIdea.trim()}`);
-      }
-    }
-
-    lines.push("NDPA 2023 Parental Consent & Data Policy: Confirmed");
-    return lines.join("\n");
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -319,12 +256,22 @@ export default function EvolveRegistrationForm({
     }
 
     setReferenceId(confirmedRef);
+    setSubmittedAt(
+      new Date().toLocaleString("en-NG", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    );
     setSubmitting(false);
     setSubmitted(true);
   };
 
   if (submitted) {
-    const summaryText = buildSummaryText(referenceId);
+    const validPupils = pupils.filter((p) => p.name.trim() !== "");
+    const validMembers = teamMembers.filter((m) => m.name.trim() !== "");
     const allCredsText = [
       `EVOLVE 8.0 STUDENT EXAM CREDENTIALS — ${schoolName} (Ref: ${referenceId})`,
       `Exam Portal: ${
@@ -341,221 +288,352 @@ export default function EvolveRegistrationForm({
     ].join("\n");
 
     return (
-      <div className="rounded-3xl border border-emerald-200 bg-white p-6 sm:p-10 shadow-[0_20px_60px_rgba(13,0,43,0.08)]">
-        <div className="mx-auto max-w-2xl text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg">
-            <CheckCircle2 className="h-7 w-7" />
-          </div>
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-            <button
-              type="button"
-              onClick={() => copyText("ref", referenceId)}
-              className="inline-flex items-center gap-1.5 rounded-full bg-[#3b00b3]/10 px-3.5 py-1 text-xs font-extrabold text-[#3b00b3] hover:bg-[#3b00b3] hover:text-white transition-colors"
-            >
-              <span>Reference ID: {referenceId}</span>
-              {copiedKey === "ref" ? (
-                <Check className="h-3.5 w-3.5" />
-              ) : (
-                <Copy className="h-3.5 w-3.5" />
-              )}
-            </button>
-            {backendSynced && (
-              <span className="inline-block rounded-full bg-emerald-100 px-3 py-1 text-xs font-extrabold text-emerald-800">
-                ✓ Registration Received
-              </span>
-            )}
-            {emailSent && emailRecipient && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-3 py-1 text-xs font-extrabold text-blue-800">
-                <Mail className="h-3.5 w-3.5" />
-                <span>Emailed to {emailRecipient}</span>
-              </span>
-            )}
-          </div>
-          <h3 className="mt-3 text-2xl font-extrabold text-[#0d002b]">
-            Evolve 8.0 Registration Confirmed for {schoolName}!
-          </h3>
-          <p className="mt-2 text-xs sm:text-sm text-gray-600">
-            {emailSent
-              ? `We've created your pupils' exam accounts and dispatched a copy of the Reference ID and all Exam IDs & PINs to ${emailRecipient}.`
-              : backendSynced
-              ? "We've received your school's registration and generated your student exam credentials below. Please copy or print them for your pupils."
-              : "Complete your registration instantly by sending this formatted summary to the Evolve 8.0 Desk via WhatsApp or Email below."}
-          </p>
-          {emailNote && (
-            <p className="mt-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs font-bold text-amber-800">
-              {emailNote}
-            </p>
-          )}
-        </div>
+      <div className="rounded-2xl border-2 border-black bg-white p-6 sm:p-10 text-black shadow-sm">
+        {/* Official Black & White Printable Slip */}
+        <div
+          id="evolve-registration-slip"
+          className="border-2 border-black bg-white p-5 sm:p-8 text-black"
+        >
+          {/* Slip Header */}
+          <div className="border-b-2 border-black pb-4">
+            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+              <div>
+                <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-black">
+                  KINGSHOUSE LEARNING CENTRE
+                </p>
+                <h3 className="mt-1 text-xl sm:text-2xl font-extrabold uppercase tracking-tight text-black">
+                  Evolve 8.0 Official Registration Slip
+                </h3>
+                <p className="mt-1 text-xs text-black/80">
+                  National School Technology Programme (Online General Test &amp; Project Track)
+                </p>
+              </div>
 
-        {/* Auto-Generated Student Exam Credentials Card */}
-        {generatedStudents.length > 0 && (
-          <div className="mt-6 rounded-2xl border-2 border-[#3b00b3]/20 bg-[#faf6ff] p-5">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#3b00b3]/15 pb-3.5">
-              <div className="flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#3b00b3] text-[#9dff13]">
-                  <KeyRound className="h-4 w-4" />
+              <div className="flex flex-col sm:items-end text-xs">
+                <div className="inline-flex items-center gap-2 border-2 border-black bg-white px-3 py-1.5 font-mono text-sm font-extrabold text-black">
+                  <span>REF: {referenceId}</span>
+                  <button
+                    type="button"
+                    onClick={() => copyText("ref", referenceId)}
+                    className="no-print inline-flex items-center gap-1 border-l border-black pl-2 text-[11px] font-sans font-bold hover:underline"
+                    title="Copy Reference ID"
+                  >
+                    {copiedKey === "ref" ? (
+                      <Check className="h-3.5 w-3.5" />
+                    ) : (
+                      <Copy className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                </div>
+                <p className="mt-1.5 text-[11px] font-semibold text-black">
+                  Date: {submittedAt || new Date().toLocaleDateString("en-NG")}
+                </p>
+                <p className="text-[11px] font-bold uppercase text-black">
+                  Status: {backendSynced ? "Confirmed" : "Recorded"}
+                  {emailSent && emailRecipient ? ` · Emailed to ${emailRecipient}` : ""}
+                </p>
+              </div>
+            </div>
+
+            {emailNote && (
+              <p className="no-print mt-3 border border-black bg-white px-3 py-2 text-xs font-bold text-black">
+                Note: {emailNote}
+              </p>
+            )}
+          </div>
+
+          {/* Section 1: School & Coordinator Details */}
+          <div className="mt-5">
+            <h4 className="border-b border-black pb-1.5 text-xs font-extrabold uppercase tracking-wider text-black">
+              1. School &amp; Coordinator Details
+            </h4>
+            <div className="mt-3 grid grid-cols-1 gap-y-2.5 gap-x-6 text-xs sm:grid-cols-2">
+              <div className="flex justify-between border-b border-black/20 pb-1.5">
+                <span className="font-bold text-black">School Name:</span>
+                <span className="font-extrabold text-black text-right">{schoolName}</span>
+              </div>
+              <div className="flex justify-between border-b border-black/20 pb-1.5">
+                <span className="font-bold text-black">School Level:</span>
+                <span className="text-black text-right">{schoolType}</span>
+              </div>
+              <div className="flex justify-between border-b border-black/20 pb-1.5">
+                <span className="font-bold text-black">State / Region:</span>
+                <span className="text-black text-right">{schoolLocation}</span>
+              </div>
+              <div className="flex justify-between border-b border-black/20 pb-1.5">
+                <span className="font-bold text-black">School Address:</span>
+                <span className="text-black text-right">{schoolAddress || "—"}</span>
+              </div>
+              <div className="flex justify-between border-b border-black/20 pb-1.5 sm:col-span-2">
+                <span className="font-bold text-black">Participation Track:</span>
+                <span className="font-extrabold text-black text-right">{trackLabel}</span>
+              </div>
+              <div className="flex justify-between border-b border-black/20 pb-1.5">
+                <span className="font-bold text-black">Coordinator / Instructor:</span>
+                <span className="text-black text-right">{coordinatorName}</span>
+              </div>
+              <div className="flex justify-between border-b border-black/20 pb-1.5">
+                <span className="font-bold text-black">Role:</span>
+                <span className="text-black text-right">{coordinatorRole}</span>
+              </div>
+              <div className="flex justify-between border-b border-black/20 pb-1.5">
+                <span className="font-bold text-black">Phone / WhatsApp:</span>
+                <span className="text-black text-right">{phone}</span>
+              </div>
+              <div className="flex justify-between border-b border-black/20 pb-1.5">
+                <span className="font-bold text-black">Official Email:</span>
+                <span className="text-black text-right">{email}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 2: Phase 1 Online Test Roster & Exam Credentials */}
+          {includeTest && (
+            <div className="mt-6">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-black pb-1.5">
+                <h4 className="text-xs font-extrabold uppercase tracking-wider text-black">
+                  2. Phase 1 · National Online General Test Roster &amp; Login Credentials
+                </h4>
+                <span className="text-[11px] font-bold text-black">
+                  Sitting Setup: {devicePreference} · Portal: /evolve/quiz
                 </span>
-                <div>
-                  <h4 className="text-sm font-extrabold text-[#0d002b]">
-                    Student Exam Login Credentials ({generatedStudents.length})
-                  </h4>
-                  <p className="text-[11px] text-gray-500">
-                    Accounts are active immediately on <code>/evolve/quiz</code>
-                  </p>
+              </div>
+
+              {generatedStudents.length > 0 ? (
+                <>
+                  <div className="no-print mt-3 flex flex-wrap items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => copyText("all", allCredsText)}
+                      className="inline-flex items-center gap-1.5 border border-black bg-white px-3 py-1.5 text-xs font-extrabold text-black hover:bg-black hover:text-white transition-colors"
+                    >
+                      {copiedKey === "all" ? (
+                        <>
+                          <Check className="h-3.5 w-3.5" />
+                          <span>Copied All ✓</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3.5 w-3.5" />
+                          <span>Copy All IDs &amp; PINs</span>
+                        </>
+                      )}
+                    </button>
+                    <Link
+                      href="/evolve/quiz"
+                      className="inline-flex items-center gap-1.5 border border-black bg-black px-3 py-1.5 text-xs font-extrabold text-white hover:bg-white hover:text-black transition-colors"
+                    >
+                      <Laptop className="h-3.5 w-3.5" />
+                      <span>Open Quiz Portal</span>
+                    </Link>
+                  </div>
+
+                  <div className="mt-3 overflow-x-auto">
+                    <table className="w-full border-collapse border border-black text-left text-xs text-black">
+                      <thead>
+                        <tr className="border-b border-black bg-white text-[10px] font-extrabold uppercase tracking-wider text-black">
+                          <th className="border-r border-black py-2 px-2.5 w-8">#</th>
+                          <th className="border-r border-black py-2 px-3">Pupil Full Name</th>
+                          <th className="border-r border-black py-2 px-3">Level</th>
+                          <th className="border-r border-black py-2 px-3">Class</th>
+                          <th className="border-r border-black py-2 px-3">Exam ID</th>
+                          <th className="py-2 px-3">6-Digit PIN</th>
+                          <th className="no-print border-l border-black py-2 px-3 text-right">
+                            Copy
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-black">
+                        {generatedStudents.map((stu, idx) => {
+                          const rowCopyText = `${stu.fullName} | Exam ID: ${stu.examCode} | PIN: ${stu.pinCode}`;
+                          const isCopied = copiedKey === stu.id;
+                          return (
+                            <tr key={stu.id}>
+                              <td className="border-r border-black py-2 px-2.5 font-bold">
+                                {idx + 1}
+                              </td>
+                              <td className="border-r border-black py-2 px-3 font-extrabold">
+                                {stu.fullName}
+                              </td>
+                              <td className="border-r border-black py-2 px-3 uppercase font-semibold">
+                                {stu.level}
+                              </td>
+                              <td className="border-r border-black py-2 px-3">
+                                {stu.className || "—"}
+                              </td>
+                              <td className="border-r border-black py-2 px-3 font-mono text-sm font-extrabold">
+                                {stu.examCode}
+                              </td>
+                              <td className="py-2 px-3 font-mono text-sm font-extrabold">
+                                {stu.pinCode}
+                              </td>
+                              <td className="no-print border-l border-black py-2 px-3 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => copyText(stu.id, rowCopyText)}
+                                  className="inline-flex items-center gap-1 border border-black bg-white px-2 py-1 text-[11px] font-bold text-black hover:bg-black hover:text-white transition-colors"
+                                >
+                                  {isCopied ? (
+                                    <>
+                                      <Check className="h-3 w-3" />
+                                      <span>Copied</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Copy className="h-3 w-3" />
+                                      <span>Copy</span>
+                                    </>
+                                  )}
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              ) : validPupils.length > 0 ? (
+                <div className="mt-3 overflow-x-auto">
+                  <table className="w-full border-collapse border border-black text-left text-xs text-black">
+                    <thead>
+                      <tr className="border-b border-black text-[10px] font-extrabold uppercase tracking-wider">
+                        <th className="border-r border-black py-2 px-2.5 w-8">#</th>
+                        <th className="border-r border-black py-2 px-3">Pupil Full Name</th>
+                        <th className="border-r border-black py-2 px-3">Level</th>
+                        <th className="py-2 px-3">Class</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-black">
+                      {validPupils.map((p, idx) => (
+                        <tr key={idx}>
+                          <td className="border-r border-black py-2 px-2.5 font-bold">
+                            {idx + 1}
+                          </td>
+                          <td className="border-r border-black py-2 px-3 font-extrabold">
+                            {p.name}
+                          </td>
+                          <td className="border-r border-black py-2 px-3">{p.level}</td>
+                          <td className="py-2 px-3">{p.className || "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="mt-2 text-xs text-black">
+                  Pupil test roster to be finalized before the test window.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Section 3: Project Track Details */}
+          {includeProject && (
+            <div className="mt-6">
+              <h4 className="border-b border-black pb-1.5 text-xs font-extrabold uppercase tracking-wider text-black">
+                {includeTest ? "3." : "2."} Project Track Details (Team of 5)
+              </h4>
+              <div className="mt-3 grid grid-cols-1 gap-y-2 gap-x-6 text-xs sm:grid-cols-2">
+                <div className="flex justify-between border-b border-black/20 pb-1.5">
+                  <span className="font-bold text-black">Category:</span>
+                  <span className="font-extrabold text-black text-right">
+                    {projectCategory}
+                  </span>
+                </div>
+                <div className="flex justify-between border-b border-black/20 pb-1.5">
+                  <span className="font-bold text-black">Chosen Path:</span>
+                  <span className="font-extrabold text-black text-right">
+                    {projectPath}
+                  </span>
+                </div>
+                <div className="flex justify-between border-b border-black/20 pb-1.5 sm:col-span-2">
+                  <span className="font-bold text-black">UN SDG Theme:</span>
+                  <span className="text-black text-right">{projectTheme}</span>
+                </div>
+                <div className="flex justify-between border-b border-black/20 pb-1.5 sm:col-span-2">
+                  <span className="font-bold text-black">Supervising Teacher:</span>
+                  <span className="text-black text-right">
+                    {supervisingTeacher || "—"}
+                  </span>
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => copyText("all", allCredsText)}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-[#100038] px-3.5 py-2 text-xs font-extrabold text-[#9dff13] hover:bg-[#3b00b3] hover:text-white transition-colors"
-                >
-                  {copiedKey === "all" ? (
-                    <>
-                      <Check className="h-3.5 w-3.5" />
-                      <span>Copied All ✓</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-3.5 w-3.5" />
-                      <span>Copy All IDs &amp; PINs</span>
-                    </>
-                  )}
-                </button>
-                <Link
-                  href="/evolve/quiz"
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#3b00b3]/30 bg-white px-3.5 py-2 text-xs font-extrabold text-[#3b00b3] hover:bg-[#3b00b3] hover:text-white transition-colors"
-                >
-                  <Laptop className="h-3.5 w-3.5" />
-                  <span>Open Quiz Portal</span>
-                </Link>
-              </div>
-            </div>
-
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-[#3b00b3]/10 text-[10px] font-extrabold uppercase tracking-wider text-gray-400">
-                    <th className="py-2 pr-3">Pupil</th>
-                    <th className="py-2 px-3">Level</th>
-                    <th className="py-2 px-3">Exam ID</th>
-                    <th className="py-2 px-3">6-Digit PIN</th>
-                    <th className="py-2 pl-3 text-right">Copy</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#3b00b3]/10">
-                  {generatedStudents.map((stu) => {
-                    const rowCopyText = `${stu.fullName} | Exam ID: ${stu.examCode} | PIN: ${stu.pinCode}`;
-                    const isCopied = copiedKey === stu.id;
-                    return (
-                      <tr key={stu.id}>
-                        <td className="py-3 pr-3">
-                          <p className="font-extrabold text-[#0d002b]">
-                            {stu.fullName}
-                          </p>
-                          {stu.className && (
-                            <p className="text-[11px] text-gray-500">
-                              {stu.className}
-                            </p>
-                          )}
-                        </td>
-                        <td className="py-3 px-3">
-                          <span className="rounded-full bg-[#100038] px-2.5 py-0.5 text-[10px] font-extrabold uppercase text-[#9dff13]">
-                            {stu.level}
-                          </span>
-                        </td>
-                        <td className="py-3 px-3 font-mono text-sm font-extrabold text-[#3b00b3]">
-                          {stu.examCode}
-                        </td>
-                        <td className="py-3 px-3 font-mono text-sm font-extrabold text-[#0d002b]">
-                          {stu.pinCode}
-                        </td>
-                        <td className="py-3 pl-3 text-right">
-                          <button
-                            type="button"
-                            onClick={() => copyText(stu.id, rowCopyText)}
-                            className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-[11px] font-extrabold transition-colors ${
-                              isCopied
-                                ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                                : "border-gray-200 bg-white text-[#0d002b] hover:border-[#3b00b3] hover:text-[#3b00b3]"
-                            }`}
-                          >
-                            {isCopied ? (
-                              <>
-                                <Check className="h-3 w-3" />
-                                <span>Copied</span>
-                              </>
-                            ) : (
-                              <>
-                                <Copy className="h-3 w-3" />
-                                <span>Copy</span>
-                              </>
-                            )}
-                          </button>
-                        </td>
+              {validMembers.length > 0 ? (
+                <div className="mt-3 overflow-x-auto">
+                  <table className="w-full border-collapse border border-black text-left text-xs text-black">
+                    <thead>
+                      <tr className="border-b border-black text-[10px] font-extrabold uppercase tracking-wider">
+                        <th className="border-r border-black py-2 px-2.5 w-8">#</th>
+                        <th className="border-r border-black py-2 px-3">
+                          Project Team Member Name
+                        </th>
+                        <th className="py-2 px-3">Class</th>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                    </thead>
+                    <tbody className="divide-y divide-black">
+                      {validMembers.map((m, idx) => (
+                        <tr key={idx}>
+                          <td className="border-r border-black py-2 px-2.5 font-bold">
+                            {idx + 1}
+                          </td>
+                          <td className="border-r border-black py-2 px-3 font-extrabold">
+                            {m.name}
+                          </td>
+                          <td className="py-2 px-3">{m.className || "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="mt-2 text-xs text-black">
+                  Team of 5 member names to be confirmed with proposal submission.
+                </p>
+              )}
+
+              {projectIdea.trim() && (
+                <div className="mt-3 border border-black p-3 text-xs">
+                  <p className="font-extrabold uppercase text-[10px] tracking-wider text-black">
+                    Initial Project Concept / Problem Summary:
+                  </p>
+                  <p className="mt-1 text-black leading-relaxed">
+                    {projectIdea.trim()}
+                  </p>
+                </div>
+              )}
             </div>
-          </div>
-        )}
-
-        {/* Summary Preview Box */}
-        <pre className="mt-6 max-h-64 overflow-auto whitespace-pre-wrap rounded-2xl border border-gray-200 bg-[#faf9ff] p-4 text-xs leading-relaxed text-[#0d002b]">
-          {summaryText}
-        </pre>
-
-        {/* Action Buttons */}
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-          {includeProject && (
-            <Link
-              href={`/evolve/projects?ref=${encodeURIComponent(referenceId)}`}
-              className="inline-flex items-center gap-2 rounded-xl bg-[#100038] px-5 py-3 text-xs sm:text-sm font-extrabold text-[#9dff13] shadow-md transition-all hover:bg-[#3b00b3] hover:text-white"
-            >
-              <span>Submit Project Proposal / Video →</span>
-            </Link>
           )}
-          <a
-            href={khlcContact.whatsappUrl(summaryText)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-xl bg-[#3b00b3] px-5 py-3 text-xs sm:text-sm font-extrabold text-white shadow-md transition-all hover:bg-[#9dff13] hover:text-[#0d002b]"
-          >
-            <MessageCircle className="h-4 w-4" />
-            <span>Submit via WhatsApp (0913 938 6220)</span>
-          </a>
 
-          <a
-            href={`mailto:${khlcContact.email}?subject=${encodeURIComponent(
-              `Evolve 8.0 Registration (${referenceId}) — ${schoolName}`
-            )}&body=${encodeURIComponent(summaryText)}`}
-            className="inline-flex items-center gap-2 rounded-xl border border-[#3b00b3]/30 bg-white px-5 py-3 text-xs sm:text-sm font-extrabold text-[#3b00b3] hover:bg-[#faf6ff] transition-colors"
-          >
-            <Mail className="h-4 w-4" />
-            <span>Send via Email</span>
-          </a>
+          {/* Slip Footer */}
+          <div className="mt-6 border-t-2 border-black pt-3 flex flex-col justify-between gap-2 text-[11px] text-black sm:flex-row sm:items-center">
+            <span>
+              <strong>NDPA 2023 Parental Consent &amp; Rules:</strong> Confirmed
+            </span>
+            <span>
+              Kingshouse Learning Centre · {khlcContact.phones[0].display} ·{" "}
+              {khlcContact.email}
+            </span>
+          </div>
+        </div>
 
+        {/* Action Buttons (Hidden on Print) */}
+        <div className="no-print mt-6 flex flex-wrap items-center justify-center gap-3">
           <button
             type="button"
             onClick={() => window.print()}
-            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-xs font-bold text-gray-700 hover:border-[#0d002b]"
+            className="inline-flex items-center gap-2 border-2 border-black bg-black px-5 py-3 text-xs font-extrabold text-white hover:bg-white hover:text-black transition-colors"
           >
             <Printer className="h-4 w-4" />
             <span>Print Slip</span>
           </button>
-        </div>
 
-        <div className="mt-5 text-center">
           <button
             type="button"
             onClick={() => setSubmitted(false)}
-            className="text-xs font-bold text-gray-500 underline hover:text-[#3b00b3]"
+            className="inline-flex items-center gap-2 border border-black bg-white px-4 py-3 text-xs font-bold text-black hover:bg-black hover:text-white transition-colors"
           >
-            Edit registration details
+            <span>Edit Registration Details</span>
           </button>
         </div>
       </div>

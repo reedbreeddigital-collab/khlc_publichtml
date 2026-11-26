@@ -199,6 +199,46 @@ func TestEvolveRegistration(t *testing.T) {
 	if listRec.Code != http.StatusOK {
 		t.Fatalf("expected status 200, got %d", listRec.Code)
 	}
+
+	// Verify RegistrarDashboard lookup by coordinator email
+	dashReq := httptest.NewRequest(http.MethodGet, "/api/v1/evolve/registrar/dashboard?query=info@kingshouselearning.com", nil)
+	dashRec := httptest.NewRecorder()
+	h.RegistrarDashboard(dashRec, dashReq)
+	if dashRec.Code != http.StatusOK {
+		t.Fatalf("expected status 200 for registrar dashboard, got %d: %s", dashRec.Code, dashRec.Body.String())
+	}
+
+	var dashResp struct {
+		Registration EvolveRegistration        `json:"registration"`
+		Students     []quiz.StudentWithAttempt `json:"students"`
+	}
+	if err := json.NewDecoder(dashRec.Body).Decode(&dashResp); err != nil {
+		t.Fatalf("decode registrar dashboard: %v", err)
+	}
+	if len(dashResp.Students) != 2 {
+		t.Fatalf("expected 2 students in registrar dashboard, got %d", len(dashResp.Students))
+	}
+
+	// Update Phase 2 social media video link for the first student
+	firstStuID := dashResp.Students[0].ID
+	videoBody := []byte(`{"referenceId":"` + dashResp.Registration.ReferenceID + `","videoUrl":"https://www.instagram.com/reel/C9xyz123/"}`)
+	vidReq := httptest.NewRequest(http.MethodPatch, "/api/v1/evolve/registrar/students/"+firstStuID+"/video", bytes.NewReader(videoBody))
+	vidReq.SetPathValue("id", firstStuID)
+	vidRec := httptest.NewRecorder()
+	h.UpdateStudentVideo(vidRec, vidReq)
+	if vidRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 updating student video, got %d: %s", vidRec.Code, vidRec.Body.String())
+	}
+
+	var vidResp struct {
+		Data quiz.Student `json:"data"`
+	}
+	if err := json.NewDecoder(vidRec.Body).Decode(&vidResp); err != nil {
+		t.Fatalf("decode video update response: %v", err)
+	}
+	if vidResp.Data.Phase2VideoURL != "https://www.instagram.com/reel/C9xyz123/" {
+		t.Fatalf("expected phase2VideoUrl to be saved, got %q", vidResp.Data.Phase2VideoURL)
+	}
 }
 
 func TestCrmLeadCRUD(t *testing.T) {

@@ -305,7 +305,8 @@ func (p *PostgresStore) DeleteQuestion(ctx context.Context, id string) error {
 func (p *PostgresStore) ListStudents(ctx context.Context, level string) ([]StudentWithAttempt, error) {
 	rows, err := p.pool.Query(ctx, `
 		SELECT s.id, s.exam_code, s.pin_code, s.pin_hash, s.full_name, s.school_name,
-		       s.school_location, s.level, s.class_name, s.registration_ref, s.created_at,
+		       s.school_location, s.level, s.class_name, s.registration_ref,
+		       s.phase2_video_url, s.phase2_video_updated_at, s.created_at,
 		       a.id, a.quiz_id, a.started_at, a.expires_at, a.submitted_at,
 		       a.time_taken_seconds, a.raw_correct, a.total_questions,
 		       a.score_out_of_1000, a.passed, a.tab_switch_count, a.status
@@ -328,6 +329,43 @@ func (p *PostgresStore) ListStudents(ctx context.Context, level string) ([]Stude
 	}
 	defer rows.Close()
 
+	return scanStudentsWithAttempts(rows)
+}
+
+func (p *PostgresStore) ListStudentsByRegistrationRef(ctx context.Context, ref string) ([]StudentWithAttempt, error) {
+	normRef := strings.ToUpper(strings.TrimSpace(ref))
+	if normRef == "" {
+		return []StudentWithAttempt{}, nil
+	}
+	rows, err := p.pool.Query(ctx, `
+		SELECT s.id, s.exam_code, s.pin_code, s.pin_hash, s.full_name, s.school_name,
+		       s.school_location, s.level, s.class_name, s.registration_ref,
+		       s.phase2_video_url, s.phase2_video_updated_at, s.created_at,
+		       a.id, a.quiz_id, a.started_at, a.expires_at, a.submitted_at,
+		       a.time_taken_seconds, a.raw_correct, a.total_questions,
+		       a.score_out_of_1000, a.passed, a.tab_switch_count, a.status
+		FROM students s
+		LEFT JOIN LATERAL (
+			SELECT id, quiz_id, started_at, expires_at, submitted_at,
+			       time_taken_seconds, raw_correct, total_questions,
+			       score_out_of_1000, passed, tab_switch_count, status
+			FROM quiz_attempts
+			WHERE student_id = s.id
+			ORDER BY started_at DESC
+			LIMIT 1
+		) a ON TRUE
+		WHERE UPPER(s.registration_ref) = $1
+		ORDER BY s.created_at ASC
+	`, normRef)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return scanStudentsWithAttempts(rows)
+}
+
+func scanStudentsWithAttempts(rows pgx.Rows) ([]StudentWithAttempt, error) {
 	out := make([]StudentWithAttempt, 0)
 	for rows.Next() {
 		var s Student
@@ -338,7 +376,8 @@ func (p *PostgresStore) ListStudents(ctx context.Context, level string) ([]Stude
 
 		if err := rows.Scan(
 			&s.ID, &s.ExamCode, &s.PinCode, &s.PinHash, &s.FullName, &s.SchoolName,
-			&s.SchoolLocation, &s.Level, &s.ClassName, &s.RegistrationRef, &s.CreatedAt,
+			&s.SchoolLocation, &s.Level, &s.ClassName, &s.RegistrationRef,
+			&s.Phase2VideoURL, &s.Phase2VideoUpdatedAt, &s.CreatedAt,
 			&aID, &aQuizID, &aStart, &aExp, &aSub,
 			&aTime, &aRaw, &aTotal, &aScore, &aPassed, &aTabs, &aStatus,
 		); err != nil {
@@ -389,11 +428,13 @@ func (p *PostgresStore) GetStudentByID(ctx context.Context, id string) (*Student
 	var s Student
 	err := p.pool.QueryRow(ctx, `
 		SELECT id, exam_code, pin_code, pin_hash, full_name, school_name,
-		       school_location, level, class_name, registration_ref, created_at
+		       school_location, level, class_name, registration_ref,
+		       phase2_video_url, phase2_video_updated_at, created_at
 		FROM students WHERE id = $1
 	`, id).Scan(
 		&s.ID, &s.ExamCode, &s.PinCode, &s.PinHash, &s.FullName, &s.SchoolName,
-		&s.SchoolLocation, &s.Level, &s.ClassName, &s.RegistrationRef, &s.CreatedAt,
+		&s.SchoolLocation, &s.Level, &s.ClassName, &s.RegistrationRef,
+		&s.Phase2VideoURL, &s.Phase2VideoUpdatedAt, &s.CreatedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
@@ -408,11 +449,13 @@ func (p *PostgresStore) GetStudentByExamCode(ctx context.Context, examCode strin
 	var s Student
 	err := p.pool.QueryRow(ctx, `
 		SELECT id, exam_code, pin_code, pin_hash, full_name, school_name,
-		       school_location, level, class_name, registration_ref, created_at
+		       school_location, level, class_name, registration_ref,
+		       phase2_video_url, phase2_video_updated_at, created_at
 		FROM students WHERE UPPER(exam_code) = UPPER($1)
 	`, strings.TrimSpace(examCode)).Scan(
 		&s.ID, &s.ExamCode, &s.PinCode, &s.PinHash, &s.FullName, &s.SchoolName,
-		&s.SchoolLocation, &s.Level, &s.ClassName, &s.RegistrationRef, &s.CreatedAt,
+		&s.SchoolLocation, &s.Level, &s.ClassName, &s.RegistrationRef,
+		&s.Phase2VideoURL, &s.Phase2VideoUpdatedAt, &s.CreatedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
@@ -427,16 +470,50 @@ func (p *PostgresStore) CreateStudent(ctx context.Context, s Student) (*Student,
 	_, err := p.pool.Exec(ctx, `
 		INSERT INTO students (
 			id, exam_code, pin_code, pin_hash, full_name, school_name,
-			school_location, level, class_name, registration_ref, created_at
-		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+			school_location, level, class_name, registration_ref,
+			phase2_video_url, phase2_video_updated_at, created_at
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
 	`,
 		s.ID, s.ExamCode, s.PinCode, s.PinHash, s.FullName, s.SchoolName,
-		s.SchoolLocation, s.Level, s.ClassName, s.RegistrationRef, s.CreatedAt,
+		s.SchoolLocation, s.Level, s.ClassName, s.RegistrationRef,
+		s.Phase2VideoURL, s.Phase2VideoUpdatedAt, s.CreatedAt,
 	)
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate key") || strings.Contains(err.Error(), "23505") {
 			return nil, ErrConflict
 		}
+		return nil, err
+	}
+	return &s, nil
+}
+
+func (p *PostgresStore) UpdateStudentPhase2Video(ctx context.Context, id, registrationRef, videoURL string) (*Student, error) {
+	cleanURL := strings.TrimSpace(videoURL)
+	var updatedAt *time.Time
+	if cleanURL != "" {
+		now := time.Now().UTC()
+		updatedAt = &now
+	}
+
+	var s Student
+	err := p.pool.QueryRow(ctx, `
+		UPDATE students
+		SET phase2_video_url = $3,
+		    phase2_video_updated_at = $4
+		WHERE id = $1
+		  AND ($2 = '' OR UPPER(registration_ref) = UPPER($2))
+		RETURNING id, exam_code, pin_code, pin_hash, full_name, school_name,
+		          school_location, level, class_name, registration_ref,
+		          phase2_video_url, phase2_video_updated_at, created_at
+	`, id, strings.TrimSpace(registrationRef), cleanURL, updatedAt).Scan(
+		&s.ID, &s.ExamCode, &s.PinCode, &s.PinHash, &s.FullName, &s.SchoolName,
+		&s.SchoolLocation, &s.Level, &s.ClassName, &s.RegistrationRef,
+		&s.Phase2VideoURL, &s.Phase2VideoUpdatedAt, &s.CreatedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
 		return nil, err
 	}
 	return &s, nil
