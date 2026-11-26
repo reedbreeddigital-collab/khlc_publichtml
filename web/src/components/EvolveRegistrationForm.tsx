@@ -13,6 +13,10 @@ import {
   Users,
   Cpu,
   Layers,
+  Copy,
+  Check,
+  KeyRound,
+  Laptop,
 } from "lucide-react";
 import Link from "next/link";
 import { khlcContact } from "@/data/khlc";
@@ -34,6 +38,15 @@ interface PupilEntry {
 interface TeamMember {
   name: string;
   className: string;
+}
+
+interface GeneratedStudentCredential {
+  id: string;
+  fullName: string;
+  level: string;
+  className: string;
+  examCode: string;
+  pinCode: string;
 }
 
 interface EvolveRegistrationFormProps {
@@ -97,8 +110,27 @@ export default function EvolveRegistrationForm({
   const [submitting, setSubmitting] = useState(false);
   const [referenceId, setReferenceId] = useState("");
   const [backendSynced, setBackendSynced] = useState(false);
+  const [generatedStudents, setGeneratedStudents] = useState<
+    GeneratedStudentCredential[]
+  >([]);
+  const [emailSent, setEmailSent] = useState(false);
+  const [emailRecipient, setEmailRecipient] = useState("");
+  const [emailNote, setEmailNote] = useState("");
+  const [copiedKey, setCopiedKey] = useState<string>("");
   const [submitError, setSubmitError] = useState("");
   const [submitted, setSubmitted] = useState(false);
+
+  const copyText = async (key: string, text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedKey(key);
+      window.setTimeout(() => {
+        setCopiedKey((prev) => (prev === key ? "" : prev));
+      }, 2000);
+    } catch {
+      // ignore clipboard errors on unsupported contexts
+    }
+  };
 
   useEffect(() => {
     if (preselectedTheme) {
@@ -166,16 +198,26 @@ export default function EvolveRegistrationForm({
     ];
 
     if (includeTest) {
-      const validPupils = pupils.filter((p) => p.name.trim() !== "");
       lines.push(`--- Phase 1 Online Test (${devicePreference}) ---`);
-      if (validPupils.length > 0) {
-        validPupils.forEach((p, idx) => {
+      if (generatedStudents.length > 0) {
+        generatedStudents.forEach((s, idx) => {
           lines.push(
-            `  ${idx + 1}. ${p.name} — ${p.level}${p.className ? ` (${p.className})` : ""}`
+            `  ${idx + 1}. ${s.fullName} [${s.level.toUpperCase()}${
+              s.className ? ` · ${s.className}` : ""
+            }] — Exam ID: ${s.examCode} | PIN: ${s.pinCode}`
           );
         });
       } else {
-        lines.push("  Pupil roster to be finalized before 14 Nov 2026.");
+        const validPupils = pupils.filter((p) => p.name.trim() !== "");
+        if (validPupils.length > 0) {
+          validPupils.forEach((p, idx) => {
+            lines.push(
+              `  ${idx + 1}. ${p.name} — ${p.level}${p.className ? ` (${p.className})` : ""}`
+            );
+          });
+        } else {
+          lines.push("  Pupil roster to be finalized before 14 Nov 2026.");
+        }
       }
     }
 
@@ -210,6 +252,10 @@ export default function EvolveRegistrationForm({
     setSubmitting(true);
     setSubmitError("");
     setBackendSynced(false);
+    setGeneratedStudents([]);
+    setEmailSent(false);
+    setEmailRecipient("");
+    setEmailNote("");
 
     let confirmedRef = `EV8-${Math.floor(1000 + Math.random() * 9000)}`;
 
@@ -256,6 +302,16 @@ export default function EvolveRegistrationForm({
         if (data?.data?.referenceId) {
           confirmedRef = data.data.referenceId;
         }
+        if (Array.isArray(data?.generatedStudents)) {
+          setGeneratedStudents(data.generatedStudents);
+        }
+        setEmailSent(Boolean(data?.emailSent));
+        if (typeof data?.emailRecipient === "string") {
+          setEmailRecipient(data.emailRecipient);
+        }
+        if (typeof data?.emailNote === "string") {
+          setEmailNote(data.emailNote);
+        }
         setBackendSynced(true);
       } catch {
         // Gracefully fall back to WhatsApp / Email handoff if API is unreachable
@@ -269,6 +325,21 @@ export default function EvolveRegistrationForm({
 
   if (submitted) {
     const summaryText = buildSummaryText(referenceId);
+    const allCredsText = [
+      `EVOLVE 8.0 STUDENT EXAM CREDENTIALS — ${schoolName} (Ref: ${referenceId})`,
+      `Exam Portal: ${
+        typeof window !== "undefined"
+          ? `${window.location.origin}/evolve/quiz`
+          : "/evolve/quiz"
+      }`,
+      ...generatedStudents.map(
+        (s, i) =>
+          `${i + 1}. ${s.fullName} (${s.level.toUpperCase()}${
+            s.className ? ` · ${s.className}` : ""
+          }) — Exam ID: ${s.examCode} | PIN: ${s.pinCode}`
+      ),
+    ].join("\n");
+
     return (
       <div className="rounded-3xl border border-emerald-200 bg-white p-6 sm:p-10 shadow-[0_20px_60px_rgba(13,0,43,0.08)]">
         <div className="mx-auto max-w-2xl text-center">
@@ -276,12 +347,27 @@ export default function EvolveRegistrationForm({
             <CheckCircle2 className="h-7 w-7" />
           </div>
           <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-            <span className="inline-block rounded-full bg-[#3b00b3]/10 px-3.5 py-1 text-xs font-extrabold text-[#3b00b3]">
-              Reference ID: {referenceId}
-            </span>
+            <button
+              type="button"
+              onClick={() => copyText("ref", referenceId)}
+              className="inline-flex items-center gap-1.5 rounded-full bg-[#3b00b3]/10 px-3.5 py-1 text-xs font-extrabold text-[#3b00b3] hover:bg-[#3b00b3] hover:text-white transition-colors"
+            >
+              <span>Reference ID: {referenceId}</span>
+              {copiedKey === "ref" ? (
+                <Check className="h-3.5 w-3.5" />
+              ) : (
+                <Copy className="h-3.5 w-3.5" />
+              )}
+            </button>
             {backendSynced && (
               <span className="inline-block rounded-full bg-emerald-100 px-3 py-1 text-xs font-extrabold text-emerald-800">
-                ✓ Saved to Kingshouse Database
+                ✓ Registration Received
+              </span>
+            )}
+            {emailSent && emailRecipient && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-3 py-1 text-xs font-extrabold text-blue-800">
+                <Mail className="h-3.5 w-3.5" />
+                <span>Emailed to {emailRecipient}</span>
               </span>
             )}
           </div>
@@ -289,11 +375,134 @@ export default function EvolveRegistrationForm({
             Evolve 8.0 Registration Confirmed for {schoolName}!
           </h3>
           <p className="mt-2 text-xs sm:text-sm text-gray-600">
-            {backendSynced
-              ? "Your school registration is securely persisted in our Evolve 8.0 database. Keep your Reference ID to submit your Project Track proposal & 3-minute video, or send a copy via WhatsApp/Email below."
+            {emailSent
+              ? `We've created your pupils' exam accounts and dispatched a copy of the Reference ID and all Exam IDs & PINs to ${emailRecipient}.`
+              : backendSynced
+              ? "We've received your school's registration and generated your student exam credentials below. Please copy or print them for your pupils."
               : "Complete your registration instantly by sending this formatted summary to the Evolve 8.0 Desk via WhatsApp or Email below."}
           </p>
+          {emailNote && (
+            <p className="mt-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs font-bold text-amber-800">
+              {emailNote}
+            </p>
+          )}
         </div>
+
+        {/* Auto-Generated Student Exam Credentials Card */}
+        {generatedStudents.length > 0 && (
+          <div className="mt-6 rounded-2xl border-2 border-[#3b00b3]/20 bg-[#faf6ff] p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#3b00b3]/15 pb-3.5">
+              <div className="flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#3b00b3] text-[#9dff13]">
+                  <KeyRound className="h-4 w-4" />
+                </span>
+                <div>
+                  <h4 className="text-sm font-extrabold text-[#0d002b]">
+                    Student Exam Login Credentials ({generatedStudents.length})
+                  </h4>
+                  <p className="text-[11px] text-gray-500">
+                    Accounts are active immediately on <code>/evolve/quiz</code>
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => copyText("all", allCredsText)}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-[#100038] px-3.5 py-2 text-xs font-extrabold text-[#9dff13] hover:bg-[#3b00b3] hover:text-white transition-colors"
+                >
+                  {copiedKey === "all" ? (
+                    <>
+                      <Check className="h-3.5 w-3.5" />
+                      <span>Copied All ✓</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-3.5 w-3.5" />
+                      <span>Copy All IDs &amp; PINs</span>
+                    </>
+                  )}
+                </button>
+                <Link
+                  href="/evolve/quiz"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-[#3b00b3]/30 bg-white px-3.5 py-2 text-xs font-extrabold text-[#3b00b3] hover:bg-[#3b00b3] hover:text-white transition-colors"
+                >
+                  <Laptop className="h-3.5 w-3.5" />
+                  <span>Open Quiz Portal</span>
+                </Link>
+              </div>
+            </div>
+
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-[#3b00b3]/10 text-[10px] font-extrabold uppercase tracking-wider text-gray-400">
+                    <th className="py-2 pr-3">Pupil</th>
+                    <th className="py-2 px-3">Level</th>
+                    <th className="py-2 px-3">Exam ID</th>
+                    <th className="py-2 px-3">6-Digit PIN</th>
+                    <th className="py-2 pl-3 text-right">Copy</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#3b00b3]/10">
+                  {generatedStudents.map((stu) => {
+                    const rowCopyText = `${stu.fullName} | Exam ID: ${stu.examCode} | PIN: ${stu.pinCode}`;
+                    const isCopied = copiedKey === stu.id;
+                    return (
+                      <tr key={stu.id}>
+                        <td className="py-3 pr-3">
+                          <p className="font-extrabold text-[#0d002b]">
+                            {stu.fullName}
+                          </p>
+                          {stu.className && (
+                            <p className="text-[11px] text-gray-500">
+                              {stu.className}
+                            </p>
+                          )}
+                        </td>
+                        <td className="py-3 px-3">
+                          <span className="rounded-full bg-[#100038] px-2.5 py-0.5 text-[10px] font-extrabold uppercase text-[#9dff13]">
+                            {stu.level}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 font-mono text-sm font-extrabold text-[#3b00b3]">
+                          {stu.examCode}
+                        </td>
+                        <td className="py-3 px-3 font-mono text-sm font-extrabold text-[#0d002b]">
+                          {stu.pinCode}
+                        </td>
+                        <td className="py-3 pl-3 text-right">
+                          <button
+                            type="button"
+                            onClick={() => copyText(stu.id, rowCopyText)}
+                            className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-[11px] font-extrabold transition-colors ${
+                              isCopied
+                                ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                                : "border-gray-200 bg-white text-[#0d002b] hover:border-[#3b00b3] hover:text-[#3b00b3]"
+                            }`}
+                          >
+                            {isCopied ? (
+                              <>
+                                <Check className="h-3 w-3" />
+                                <span>Copied</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="h-3 w-3" />
+                                <span>Copy</span>
+                              </>
+                            )}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* Summary Preview Box */}
         <pre className="mt-6 max-h-64 overflow-auto whitespace-pre-wrap rounded-2xl border border-gray-200 bg-[#faf9ff] p-4 text-xs leading-relaxed text-[#0d002b]">

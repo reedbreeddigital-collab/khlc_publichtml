@@ -443,15 +443,15 @@ export default function VideoContactSection({
                 </h4>
                 {backendSynced && enquiryId && (
                   <span className="mt-2 inline-block rounded-full bg-emerald-100 px-3 py-0.5 font-mono text-[11px] font-extrabold text-emerald-800">
-                    Saved in KHLC Database · Ref: {enquiryId}
+                    Ref: {enquiryId}
                   </span>
                 )}
                 <p className="mt-2 text-xs sm:text-sm text-gray-600">
                   Thank you,{" "}
                   <strong className="text-[#0d002b]">{fullName}</strong>.{" "}
                   {backendSynced
-                    ? "Our business development team has received your enquiry in the KHLC Admin Console. You can also message us directly via WhatsApp or Email for an instant response."
-                    : "Send your enquiry directly to our business development team via WhatsApp or Email for immediate response."}
+                    ? "We’ve received your enquiry and our team will be in touch shortly. You can also message us directly via WhatsApp or Email for an instant response."
+                    : "Send your enquiry directly to our team via WhatsApp or Email for an immediate response."}
                 </p>
 
                 <div className="mt-5 flex flex-col justify-center gap-3 sm:flex-row">

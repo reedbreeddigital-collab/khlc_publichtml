@@ -15,6 +15,7 @@ import (
 	"khlc-backend/internal/config"
 	"khlc-backend/internal/db"
 	"khlc-backend/internal/handlers"
+	"khlc-backend/internal/mailer"
 	"khlc-backend/internal/middleware"
 	"khlc-backend/internal/quiz"
 )
@@ -50,7 +51,6 @@ func main() {
 
 	mux := http.NewServeMux()
 	enquiryHandler := handlers.NewEnquiryHandler(pool)
-	evolveHandler := handlers.NewEvolveHandler(pool)
 	crmHandler := handlers.NewCrmHandler(pool)
 	projectHandler := handlers.NewProjectHandler(pool)
 
@@ -60,6 +60,19 @@ func main() {
 	} else {
 		quizStore = quiz.NewMemoryStore()
 	}
+
+	smtpMailer := mailer.New(mailer.Config{
+		Host:        cfg.SMTPHost,
+		Port:        cfg.SMTPPort,
+		User:        cfg.SMTPUser,
+		Pass:        cfg.SMTPPass,
+		From:        cfg.SMTPFrom,
+		FrontendURL: cfg.FrontendURL,
+	})
+	evolveHandler := handlers.NewEvolveHandler(pool).
+		WithQuizStore(quizStore).
+		WithMailer(smtpMailer, logger)
+
 	quizHandler := quiz.NewHandler(quizStore, cfg.AdminEmail, cfg.AdminPassword, cfg.AdminJWTSecret)
 	protectAdmin := func(next http.HandlerFunc) http.HandlerFunc {
 		return middleware.RequireAdmin(cfg.AdminJWTSecret, next)

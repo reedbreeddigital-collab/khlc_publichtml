@@ -378,7 +378,7 @@ export default function EvolveProjectsPortalPage() {
               <CheckCircle2 className="h-6 w-6 shrink-0 text-emerald-600" />
               <div>
                 <h2 className="text-base font-extrabold text-emerald-950">
-                  Project Submission Saved to Kingshouse Database!
+                  Project Submission Received!
                 </h2>
                 <p className="mt-1 text-xs text-emerald-800">
                   Reference:{" "}
@@ -747,7 +747,7 @@ export default function EvolveProjectsPortalPage() {
                 <Send className="h-4 w-4" />
                 <span>
                   {submitting
-                    ? "Saving to Database..."
+                    ? "Submitting..."
                     : "Save Project Submission"}
                 </span>
               </button>

@@ -200,7 +200,7 @@ export default function AdminProvider({
   // Admin auth state
   const [adminToken, setAdminToken] = useState<string>("");
   const [authChecked, setAuthChecked] = useState(false);
-  const [loginEmail, setLoginEmail] = useState("admin@kingshouselearning.com");
+  const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState("");
@@ -671,8 +671,21 @@ export default function AdminProvider({
     URL.revokeObjectURL(url);
   };
 
+  if (!authChecked) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#100038] px-4 py-12 text-white">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#9dff13] border-t-transparent" />
+          <p className="text-xs font-bold uppercase tracking-wider text-white/70">
+            Loading Admin Console...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   // Protected Admin Login Screen
-  if (authChecked && !adminToken) {
+  if (!adminToken) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#100038] px-4 py-12 text-white">
         <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white p-7 text-[#0d002b] shadow-2xl">
@@ -708,6 +721,7 @@ export default function AdminProvider({
                 required
                 value={loginEmail}
                 onChange={(e) => setLoginEmail(e.target.value)}
+                placeholder="Enter admin email"
                 className="mt-1 w-full rounded-xl border border-gray-200 bg-[#faf9ff] px-3.5 py-2.5 text-sm text-[#0d002b] focus:border-[#3b00b3] focus:bg-white focus:outline-none"
               />
             </div>

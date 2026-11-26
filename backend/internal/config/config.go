@@ -12,11 +12,17 @@ type Config struct {
 	Port                string
 	Env                 string
 	AllowedOrigin       string
+	FrontendURL         string
 	DatabaseURL         string
 	DatabaseURLUnpooled string
 	AdminEmail          string
 	AdminPassword       string
 	AdminJWTSecret      string
+	SMTPHost            string
+	SMTPPort            string
+	SMTPUser            string
+	SMTPPass            string
+	SMTPFrom            string
 }
 
 // Load reads .env.local / .env files (if present) and returns runtime configuration.
@@ -30,16 +36,29 @@ func Load() Config {
 
 	adminPass := getEnv("ADMIN_PASSWORD", "KHLC-Evolve8!")
 	jwtSecret := getEnv("ADMIN_JWT_SECRET", "khlc-evolve8-session-secret-"+adminPass)
+	allowedOrigin := getEnv("ALLOWED_ORIGIN", "http://localhost:3000")
+	defaultFrontend := strings.TrimSpace(strings.Split(allowedOrigin, ",")[0])
+	if defaultFrontend == "" || defaultFrontend == "*" {
+		defaultFrontend = "https://khlc.onrender.com"
+	}
+
+	smtpUser := getEnv("SMTP_USER", "info@kingshouselearning.com")
 
 	return Config{
 		Port:                getEnv("PORT", "8080"),
 		Env:                 getEnv("APP_ENV", "development"),
-		AllowedOrigin:       getEnv("ALLOWED_ORIGIN", "http://localhost:3000"),
+		AllowedOrigin:       allowedOrigin,
+		FrontendURL:         getEnv("FRONTEND_URL", defaultFrontend),
 		DatabaseURL:         os.Getenv("DATABASE_URL"),
 		DatabaseURLUnpooled: os.Getenv("DATABASE_URL_UNPOOLED"),
 		AdminEmail:          getEnv("ADMIN_EMAIL", "admin@kingshouselearning.com"),
 		AdminPassword:       adminPass,
 		AdminJWTSecret:      jwtSecret,
+		SMTPHost:            getEnv("SMTP_HOST", "smtp.hostinger.com"),
+		SMTPPort:            getEnv("SMTP_PORT", "465"),
+		SMTPUser:            smtpUser,
+		SMTPPass:            os.Getenv("SMTP_PASS"),
+		SMTPFrom:            getEnv("SMTP_FROM", "Kingshouse Learning Centre <"+smtpUser+">"),
 	}
 }
 

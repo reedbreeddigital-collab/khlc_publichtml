@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"khlc-backend/internal/quiz"
 )
 
 func TestHealth(t *testing.T) {
@@ -146,7 +148,8 @@ func TestProjectSubmissionAndJudging(t *testing.T) {
 }
 
 func TestEvolveRegistration(t *testing.T) {
-	h := NewEvolveHandler()
+	store := quiz.NewMemoryStore()
+	h := NewEvolveHandler().WithQuizStore(store)
 
 	payload := []byte(`{
 		"track": "both",
@@ -158,6 +161,10 @@ func TestEvolveRegistration(t *testing.T) {
 		"coordinatorRole": "Assigned KHLC Instructor",
 		"phone": "09139386220",
 		"email": "info@kingshouselearning.com",
+		"testPupils": [
+			{"name": "Chidinma Eze", "level": "Junior (P4-P6)", "className": "Primary 5"},
+			{"name": "Tunde Ade", "level": "Senior (SS1-SS3)", "className": "SS 2"}
+		],
 		"projectCategory": "Secondary",
 		"projectPath": "Robotics",
 		"projectTheme": "Theme 1: Education (SDG 4)",
@@ -170,6 +177,19 @@ func TestEvolveRegistration(t *testing.T) {
 
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("expected status 201, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var resp struct {
+		GeneratedStudents []GeneratedStudentCredential `json:"generatedStudents"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if len(resp.GeneratedStudents) != 2 {
+		t.Fatalf("expected 2 auto-provisioned student credentials, got %d", len(resp.GeneratedStudents))
+	}
+	if resp.GeneratedStudents[0].ExamCode == "" || len(resp.GeneratedStudents[0].PinCode) != 6 {
+		t.Fatalf("expected generated examCode and 6-digit pinCode, got %+v", resp.GeneratedStudents[0])
 	}
 
 	listReq := httptest.NewRequest(http.MethodGet, "/api/v1/evolve/registrations", nil)

@@ -1,14 +1,24 @@
 package handlers
 
 import (
+	"context"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log/slog"
+	"math/big"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"khlc-backend/internal/mailer"
+	"khlc-backend/internal/quiz"
 )
 
 // EvolvePupil represents a pupil registered for the Phase 1 National Online Test.
@@ -22,6 +32,16 @@ type EvolvePupil struct {
 type EvolveTeamMember struct {
 	Name      string `json:"name"`
 	ClassName string `json:"className"`
+}
+
+// GeneratedStudentCredential is returned immediately upon registration so coordinators can copy/print logins.
+type GeneratedStudentCredential struct {
+	ID        string `json:"id"`
+	FullName  string `json:"fullName"`
+	Level     string `json:"level"`
+	ClassName string `json:"className"`
+	ExamCode  string `json:"examCode"`
+	PinCode   string `json:"pinCode"`
 }
 
 // EvolveRegistration captures an Evolve 8.0 school & team registration.
@@ -49,9 +69,12 @@ type EvolveRegistration struct {
 	CreatedAt          time.Time          `json:"createdAt"`
 }
 
-// EvolveHandler manages Evolve 8.0 registrations.
+// EvolveHandler manages Evolve 8.0 registrations, automatic student provisioning, and confirmation emails.
 type EvolveHandler struct {
 	pool          *pgxpool.Pool
+	quizStore     quiz.Store
+	mailer        *mailer.Mailer
+	logger        *slog.Logger
 	mu            sync.RWMutex
 	registrations []EvolveRegistration
 }
@@ -66,6 +89,19 @@ func NewEvolveHandler(pool ...*pgxpool.Pool) *EvolveHandler {
 		pool:          p,
 		registrations: make([]EvolveRegistration, 0),
 	}
+}
+
+// WithQuizStore enables automatic student account creation (Exam ID + 6-digit PIN) on registration.
+func (h *EvolveHandler) WithQuizStore(store quiz.Store) *EvolveHandler {
+	h.quizStore = store
+	return h
+}
+
+// WithMailer enables automatic confirmation email dispatch to the registered teacher/coordinator.
+func (h *EvolveHandler) WithMailer(m *mailer.Mailer, logger *slog.Logger) *EvolveHandler {
+	h.mailer = m
+	h.logger = logger
+	return h
 }
 
 var validEvolveTracks = map[string]bool{
@@ -112,7 +148,9 @@ func (h *EvolveHandler) CreateRegistration(w http.ResponseWriter, r *http.Reques
 	now := time.Now().UTC()
 	req.ID = fmt.Sprintf("ev8_%d", now.UnixNano())
 	if strings.TrimSpace(req.ReferenceID) == "" {
-		req.ReferenceID = fmt.Sprintf("EV8-%06d", now.UnixNano()%1000000)
+		req.ReferenceID = fmt.Sprintf("EV8-%s", randomDigitsStr(4))
+	} else {
+		req.ReferenceID = strings.ToUpper(strings.TrimSpace(req.ReferenceID))
 	}
 	req.CreatedAt = now
 	if req.TestPupils == nil {
@@ -153,9 +191,106 @@ func (h *EvolveHandler) CreateRegistration(w http.ResponseWriter, r *http.Reques
 		h.mu.Unlock()
 	}
 
+	// 1. Auto-create student accounts (Exam ID + 6-digit PIN) for every registered Phase 1 pupil
+	generated := make([]GeneratedStudentCredential, 0, len(req.TestPupils))
+	if h.quizStore != nil && (req.Track == "both" || req.Track == "test") {
+		for _, pup := range req.TestPupils {
+			name := strings.TrimSpace(pup.Name)
+			if name == "" {
+				continue
+			}
+			lvl := normalizePupilLevel(pup.Level)
+			pin := randomDigitsStr(6)
+			hashSum := sha256.Sum256([]byte(pin))
+			pinHash := hex.EncodeToString(hashSum[:])
+
+			// Retry Exam ID generation on rare collision
+			var createdStu *quiz.Student
+			for attempt := 0; attempt < 5; attempt++ {
+				examCode := makeExamCode(lvl)
+				stu := quiz.Student{
+					ID:              fmt.Sprintf("stu_%d_%s", time.Now().UTC().UnixNano(), randomDigitsStr(3)),
+					ExamCode:        examCode,
+					PinCode:         pin,
+					PinHash:         pinHash,
+					FullName:        name,
+					SchoolName:      req.SchoolName,
+					SchoolLocation:  req.SchoolLocation,
+					Level:           lvl,
+					ClassName:       strings.TrimSpace(pup.ClassName),
+					RegistrationRef: req.ReferenceID,
+					CreatedAt:       time.Now().UTC(),
+				}
+				res, err := h.quizStore.CreateStudent(r.Context(), stu)
+				if err == nil {
+					createdStu = res
+					break
+				}
+				if !errors.Is(err, quiz.ErrConflict) {
+					break
+				}
+			}
+
+			if createdStu != nil {
+				generated = append(generated, GeneratedStudentCredential{
+					ID:        createdStu.ID,
+					FullName:  createdStu.FullName,
+					Level:     createdStu.Level,
+					ClassName: createdStu.ClassName,
+					ExamCode:  createdStu.ExamCode,
+					PinCode:   createdStu.PinCode,
+				})
+			}
+		}
+	}
+
+	// 2. Dispatch confirmation email with Reference ID & generated student Exam IDs/PINs to coordinator
+	emailSent := false
+	emailNote := ""
+	if h.mailer != nil && h.mailer.IsConfigured() && req.Email != "" {
+		mailCreds := make([]mailer.StudentCredential, 0, len(generated))
+		for _, g := range generated {
+			mailCreds = append(mailCreds, mailer.StudentCredential{
+				FullName:  g.FullName,
+				Level:     g.Level,
+				ClassName: g.ClassName,
+				ExamCode:  g.ExamCode,
+				PinCode:   g.PinCode,
+			})
+		}
+		mailCtx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+		err := h.mailer.SendEvolveRegistrationEmail(mailCtx, mailer.EvolveRegistrationEmailData{
+			ReferenceID:     req.ReferenceID,
+			SchoolName:      req.SchoolName,
+			CoordinatorName: req.CoordinatorName,
+			RecipientEmail:  req.Email,
+			Track:           req.Track,
+			ProjectPath:     req.ProjectPath,
+			ProjectTheme:    req.ProjectTheme,
+			Students:        mailCreds,
+		})
+		cancel()
+		if err != nil {
+			emailNote = "Registration saved, but email delivery failed — please copy or print your credentials below."
+			if h.logger != nil {
+				h.logger.Warn("failed to dispatch Evolve registration email",
+					"ref", req.ReferenceID,
+					"recipient", req.Email,
+					"err", err,
+				)
+			}
+		} else {
+			emailSent = true
+		}
+	}
+
 	writeJSON(w, http.StatusCreated, map[string]any{
-		"message": "Evolve 8.0 registration recorded successfully",
-		"data":    req,
+		"message":           "Evolve 8.0 registration recorded successfully",
+		"data":              req,
+		"generatedStudents": generated,
+		"emailSent":         emailSent,
+		"emailRecipient":    req.Email,
+		"emailNote":         emailNote,
 	})
 }
 
@@ -211,4 +346,42 @@ func (h *EvolveHandler) ListRegistrations(w http.ResponseWriter, r *http.Request
 		"count": len(out),
 		"data":  out,
 	})
+}
+
+func normalizePupilLevel(raw string) string {
+	v := strings.ToLower(strings.TrimSpace(raw))
+	switch {
+	case strings.Contains(v, "jun"), strings.Contains(v, "primary"):
+		return "junior"
+	case strings.Contains(v, "inter"), strings.Contains(v, "jss"):
+		return "intermediate"
+	case strings.Contains(v, "sen"), strings.Contains(v, "ss"):
+		return "senior"
+	default:
+		return "junior"
+	}
+}
+
+func makeExamCode(level string) string {
+	prefix := "JUN"
+	switch level {
+	case "intermediate":
+		prefix = "INT"
+	case "senior":
+		prefix = "SEN"
+	}
+	return fmt.Sprintf("EV8-%s-%s", prefix, randomDigitsStr(4))
+}
+
+func randomDigitsStr(n int) string {
+	var b strings.Builder
+	for i := 0; i < n; i++ {
+		num, err := rand.Int(rand.Reader, big.NewInt(10))
+		if err != nil {
+			b.WriteByte('5')
+		} else {
+			b.WriteByte(byte('0' + num.Int64()))
+		}
+	}
+	return b.String()
 }
